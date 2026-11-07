@@ -1,0 +1,3864 @@
+hPN SB 
+ 
+ 
+        ********************************************
+        ********************************************
+        **                                        **
+        ** Sprachbeschreibung zum  BASIC-T-System **
+        **                                        **
+        ********************************************
+        **                                        **
+        ** VEB Transformatoren-  und Roentgenwerk **
+        **      "Hermann Matern"  Dresden         **
+        **                                        **
+        ********************************************
+        **                                        **
+        **     Bearbeiter: R.Heyne                **
+        **     Stand     : 27.10.83               **
+        **                                        **
+        ********************************************
+        ********************************************
+ 
+ 
+ 
+ 
+   Inhaltsverzeichnis
+                                                Seite
+  1.     Vorwort
+ 
+  2.     Sprachcharakteristik
+ 
+  3.     Der Zeichensatz von BASIC
+ 
+  4.     Datenobjekte
+  4.1.   Allgemeines
+  4.2.   Numerische Konstanten
+  4.3.   Zeichenkettenkonstanten
+  4.4.   Namensbildung
+  4.5.   Numerische Variablen
+  4.6.   Zeichenkettenvariablen
+  4.7.   Feldvariablen
+  4.8.   Symbolische Marken
+  4.9.   Dateinamen
+ 
+  5.     Anweisungen
+  5.1.   Numerische Ausdruecke
+  5.2.   Zeichenkettenausdruecke
+  5.3.   E/A-Anweisungen
+  5.3.1. Ausgabeanweisungen
+  5.3.2. Eingabeanweisungen
+  5.3.3. Geraetezuweisungen
+  5.4.   Ergibtanweisungen
+  5.5.   Sprunganweisungen
+  5.5.1. Unbedingte Spruenge
+  5.5.2. Bedingte Spruenge
+  5.5.3. Unterprogrammspruenge
+  5.5.4. Zielverteiler
+
+                        BASIC-T   Sprachbeschreibung   0
+ 
+ 
+  5.6.   Iterative Zyklen
+  5.7.   Datenanweisungen
+  5.8.   Dimensionsanweisungen
+  5.9.   Funktionsdefinition
+  5.10.  Sonstige Anweisungen
+  5.11.  Kommentaranweisung
+ 
+  6.     Funktionen
+  6.1.   Numerische Funktionen
+  6.2.   Zeichenkettenfunktionen
+ 
+  7.     Die komplette BASIC-T - Quellzeile
+ 
+  8.     Das Kommandosystem
+  8.1.   Kommandos zur Systemsteuerung
+  8.2.   Kommandos zur Programmerstellung
+  8.3.   Kommandos zur Programmarchivierung
+ 
+  9.     Das Fehlersystem
+ 
+ 
+ 
+   Anlagen
+ 
+  Zusammenstellung der verwendeten Definitionen
+ 
+  I      Zeichensatz
+  II     Datenobjekte
+  III    Anweisungen
+  IV     Funktionen
+  V      Kommandos
+ 
+ 
+ 9
+ 
+
+                        BASIC-T   Sprachbeschreibung   1
+ 
+ 
+ 
+    1. Vorwort
+   ============
+ 
+ 
+Diese vorliegende Sprachbeschreibung ist Bestandteil der kom-
+pletten Anwenderdokumentation zum BASIC-Sprachverarbeitungs-
+system des VEB Transformatoren- und Roentgenwerkes Dresden. Zur
+vollstaendigen Dokumentation gehoeren folgende Schriften:
+ 
+ - BASIC-Sprachbeschreibung
+ - BASIC-Generierhinweise
+ 
+Diese Sprachbeschreibung soll nicht als Lehrmaterial sondern vor
+allem als Nachschlagewerk dienen. Da BASIC international in sehr
+vielfaeltigen und vor allem unterschiedlichen Varianten im Um-
+lauf ist, erweist es sich als notwendig, eine klare Definition
+vorzunehmen.
+Die Sprachbeschreibung ist so gegliedert, dass sie logisch von
+den Grundelementen bis zum vollen Umfang fuehrt. Alle Abschnitte
+sind reichlich mit Beispielen versehen, die saemtlich  ausge-
+testet sind. Beim Durcharbeiten dieser Sprachvariante erweist es
+sich sicherlich als vorteilhaft, diese Beispiele selbst einmal
+im Rechnerlauf zu testen, um einige Besonderheiten und spezielle
+Eigenschaften kennenzulernen. Der Leser wird dadurch alle Aspek-
+te der Sprache erfassen und in seinen Programmen anwenden koen-
+nen.
+ 
+ 
+ 
+
+                        BASIC-T   Sprachbeschreibung   2
+ 
+ 
+ 
+   2. Sprachcharakteristik
+  =========================
+ 
+ 
+BASIC ist eine problemorientierte Sprache, die zu Beginn der
+siebziger Jahre vom Darthmouth-College entwickelt wurde. Die
+Haupteigenschaft von BASIC ist seine volle Dialogfaehigkeit in
+Programmerstellung, -testung und -abarbeitung. Diese liegt in
+der interpretativen Verarbeitung der BASIC-Quellprogramme be-
+gruendet.
+ 
+Im VEB Transformatoren- und Roentgenwerk Dresden entstand ein
+komplettes Sprachverarbeitungssystem fuer diese Sprache, welches
+im folgenden kurz BASIC-T genannt wird.
+Aufbauend auf dem Standard-BASIC erwies es sich fuer einen
+komplexen Einsatz der Sprache als erforderlich, einige wesent-
+liche Erweiterungen vorzunehmen. Bei der Auswahl dieser Erwei-
+terungen wurde davon ausgegangen, dass moeglichst solche Sprach-
+konstruktionen ausgewaehlt wurden, die in international weit
+verbreiteten Systemen benutzt wurden. Dadurch ergibt sich eine
+recht gute Verarbeitungsmoeglichkeit fuer BASIC-Anwenderpro-
+gramm(-systeme) aus der Literatur.
+Zum Einsatz gekommen sind folgende Erweiterungen:
+ 
+ - Aufnahme einer kompletten Zeichenkettenverarbeitung
+ - Zulassung von symbolischen Marken
+ - IF-Anweisung mit vollstaendiger Alternative und Anweisungs-
+   folgen in den THEN- bzw. ELSE-Zweigen
+ - Diverse Befehle fuer die Steuerung von Prozessen
+ - Abarbeitung durch optimierte Zwischencodeinterpretation mit
+   erheblicher Einsparung von Rechenzeit.
+ - Formatsteuerbefehle fuer die Ausgabekonvertierung
+ 
+Die folgende Sprachbeschreibung greift auf eine Definition durch
+metasprachliche Ausdrucksmittel zurueck. Zur leichteren Ver-
+staendlichkeit sollen die dabei benutzten Symbole und die Dar-
+stellungsform einleitend erlaeutert werden
+ 
+ 
+     Metasymbol ::= syntaktische Struktur
+ 
+ 
+Metasymbol      Das Metasymbol ist das durch diese Beschreibung
+                definierte Sprachelement
+ 
+::=             Heisst soviel wie "ist definiert durch"
+ 
+syntaktische Struktur  Ist die Bildungsvorschrift, nach der die
+                mit "Metasymbol" bezeichnete Sprachkonstruktion
+                aufgebaut sein muss
+ 
+ 
+
+                        BASIC-T   Sprachbeschreibung   3
+ 
+ 
+ Alternative
+ ...........
+ 
+  /     \
+ |       |
+<  .....  >   fuer die vertikale und
+ |       |
+  \     /
+ 
+ 
+...|...|...   fuer die horizontale Aufzaehlung von Moeglich-
+              keiten von denen genau eine auszuwaehlen ist
+ 
+ 
+              Bsp.
+ 
+              bzi::= 0|1
+              Das definierte Symbol bzi (Binaerziffer) besteht
+              aus genau einer der Ziffern 0 oder 1
+ 
+ 
+ 
+ Wahlfreie Angaben
+ .................
+ 
+[ ... ]       eine in diesen eckigen Klammern stehende Sprach-
+              konstruktion kann zur Bildung des Metasymbols
+              mit herangezogen werden, braucht es aber nicht
+ 
+ 
+              Bsp.
+ 
+              name::= bu [ bu|zi ]
+              Das definierte Symbol name besteht aus einem
+              Buchstaben (bu) der wahlweise durch einen zweiten
+              Buchstaben oder eine Ziffer (zi) ergaenzt werden
+              kann.
+ 
+ 
+ 
+ Iterationen
+ ...........
+ 
+|_____....    Dieses Symbol bedeutet, dass die mit dem durch-
+              gehenden Strich gekennzeichneten Teile beliebig
+              oft wiederholt werden koennen. Falls ein Teil
+|____/...     des Striches gekennzeichnet ist durch ein / ,
+              dann wird dieser Teil nach der letzten Wieder-
+              holung nicht mit angegeben.
+ 
+ 
+              Bsp.
+ 
+              data_a::= DATA  dael,
+                              |___/...
+ 
+
+                        BASIC-T   Sprachbeschreibung   4
+ 
+ 
+              Die DATA-Anweisung (data_a) ist definiert durch
+              das Schluesselwort DATA, gefolgt von beliebig
+              vielen DATA-Elementen (dael). Dabei ist zu be-
+              achten, dass die Elemente durch Komma getrennt
+              werden, dieses jedoch nach dem letzten Element
+              wegzulassen ist.
+ 
+ 
+ 
+An den Beispielen war auch zu erkennen, dass mit Kleinbuch-
+staben geschriebene Symbole ebenfalls wieder Metasymbole dar-
+stellen, die entsprechend an anderer Stelle (fast aus-
+schliesslich vor ihrem Einsatz in der syntaktischen Struktur)
+definiert wurden. Grossbuchstaben und Ziffern sind jedoch
+unmittelbar Bestandteil der Struktur, wie zum Beispiel die
+Schluesselworte der Sprache BASIC.
+ 
+ 
+ 
+ 
+
+                        BASIC-T   Sprachbeschreibung   5
+ 
+ 
+ 
+   3.  Der Zeichensatz von BASIC
+  ===============================
+ 
+ 
+Der Zeichensatz beinhaltet alle Grossbuchstaben und Ziffern.
+Weiterhin haben eine Reihe von Sonderzeichen eine syntaktische
+Bedeutung in BASIC. Da das BASIC-System auf allen Mikrorechnern
+mit der CPU U 880 arbeiten soll, ist der durch Tastatur und
+Wiedergabesystem (Display,Drucker) bestimmte Zeichensatz
+der einzelnen Rechner unterschiedlich. So wurden eine Reihe
+von Sonderzeichen durch mehrere Zeichen des Zeichensatzes
+gebildet.
+ 
+ Buchstaben
+ ..........
+ 
+  bu::= A | B | C | ... | X | Y | Z
+ 
+ 
+ Ziffern
+ .......
+ 
+  zi::= 0 | 1 | ... | 8 | 9
+ 
+ 
+ Arithmetische Operatoren
+ ........................
+ 
+  arop::= + | - | * | / | **        ( ** fuer die Potenzierung )
+ 
+ 
+ Logische Operatoren
+ ...................
+ 
+  loop::= .NOT.|.AND.|.OR.|.NAND.|.NOR.|.XOR.
+ 
+ 
+ Vergleichsoperatoren
+ ....................
+ 
+           /  =  \        gleich
+          |   <   |       kleiner
+  vop::= <    >    >      groesser
+          |  <=   |       kleiner oder gleich
+          |  >=   |       groesser oder gleich
+           \ <>  /        ungleich
+ 
+ 
+ Sonderzeichen
+ .............
+ 
+  sz::= , | : | ; | ( | ) | ' | " | % | & | $ | !
+ 
+Alle weiteren im Zeichensatz des Rechners enthaltenen Zeichen
+duerfen darueber hinaus innerhalb von Zeichenketten vorkommen.
+Ausserhalb dieser Anwendung fuehren sie zu Fehlermeldungen.
+ 
+ 
+
+                        BASIC-T   Sprachbeschreibung   6
+ 
+ 
+ 
+   4. Datenobjekte
+  =================
+ 
+ 
+  4.1   Allgemeines
+  -----------------
+ 
+BASIC bietet die Arbeitsmoeglichkeiten mit einer Reihe von ver-
+schiedenen Datentypen. Aus dem Standard-BASIC wurde der Daten-
+typ "Gleitpunktzahl" uebernommen. In der Befehlsliste des U880
+ist eine Gleitpunktrechnung allerdings nicht mit enthalten, so
+dass sie durch teilweise recht umfangreiche Programmteile simu-
+liert werden muss. Diese Abarbeitung durch Unterprogramme
+fuehrt zu einer wesentlichen Verlangsamung des Rechenprozesses.
+Deshalb wurde zusaetzlich der Datentyp 16-bit-Integer mit auf-
+genommen. Diese Arithmetik wird vom Prozessor wesentlich besser
+unterstuetzt und fuehrt zu einer wesentlichen Einsparung von
+Rechenzeit. Um den gemeinsamen Umgang mit Gleitpunkt-  und
+ganzen Zahlen zu vereinfachen, ist ihr gemischter Einsatz mit
+einigen Einschraenkungen gestattet. Die dafuer geltenden Regeln
+sind im Abschnitt " numerische Ausdruecke" (5.1.) ausfuehrlich
+erlaeutert.
+ 
+Weitere neue Datenformen im BASIC-T sind die Zeichenkettenob-
+jekte und symbolische Markenobjekte.
+ 
+ 
+    4.2.Numerische Konstanten
+    -------------------------
+ 
+Die Standardform der numerischen Daten im BASIC sind die Gleit-
+punktzahlen. Ihr allgemeines Bildungsgesetz lautet:
+ 
+ 
+           /          [ n ] . n                \
+          |                                     |
+          |              /     \                |
+   ngk::=<              |  [+]  |                >
+          |   n [.n] [ <         > E zi [zi] ]  |
+          |             |   -   |               |
+           \             \     /               /
+ 
+ 
+Zu beachten ist dabei folgendes:
+ 
+Die im BASIC-T enthaltene Arithmetik arbeitet mit einer maxi-
+malen Genauigkeit von 9 Dezimalen. Weitere Stellen werden nicht
+mit beruecksichtigt. Der Betrag des Exponenten darf in der nor-
+malisierten Darstellung maximal 38 betragen.
+ 
+Bsp.:
+ 
+  125
+  12.5E1
+  .125E+3
+  0.12345678E-25
+  123.2E100                  falsch, Exponent zu gross
+  57,3                       falsch, Komma statt Punkt benutzt
+ 
+
+                        BASIC-T   Sprachbeschreibung   7
+ 
+ 
+ 
+Wie schon angedeutet,kann der Programmierer auch eine Darstel-
+lung im 2-Byte-Format mit dem Vorteil der Senkung der Rechen-
+zeiten erreichen.
+Diese Zahl wird dann als vorzeichenbehaftete ganze Zahl im Be-
+reich von  -32768...+32767  gespeichert.
+ 
+ 
+    niz::= zi   %
+          |__...
+ 
+Kennzeichen ist das an die Zahl angefuegte Prozentzeichen.
+ 
+Ausser in dieser Darstellung im Dezimalsystem ist auch die An-
+gabe in den beiden in der Rechentechnik weit verbreiteten Zah-
+lensystemen zur Basis 2 (Dualsystem) und 16 (Hexadezimalsystem)
+ermoeglicht worden. Einsatzgebiete hierfuer sind vor allem der
+Direktzugriff auf den Speicher und die Peripherie des Rechners
+sowie die logischen Funktionen.
+ 
+ 
+            / H'hzi      \        H'0 ... H'7FFF
+           |   |___...    |
+   niz::= <                >
+           |  B'bzi       |       B'0 ... B'111111111111111
+            \  |___...   /
+ 
+mit:
+ 
+   hzi::= zi | A | B | C | D | E | F
+ 
+   bzi::= 0 | 1
+ 
+ 
+ 
+Bsp.:
+ 
+  64%
+  H'40
+  B'1000000
+  33000%            falsch, Zahl zu gross
+  B'120             falsch, 2 keine Binaerziffer
+ 
+ 
+ 
+   4.3.    Zeichenkettenkonstanten
+  ---------------------------------
+ 
+ 
+In BASIC-T koennen Zeichenketten, die aus beliebigen Zeichen
+des Zeichensatzes des Rechners bestehen, definiert werden.Die
+maximal vorgegebene Laenge von saemtlichen Zeichenketten ist
+auf 255 festgelegt. Da es keine Drucker gibt, die eine
+groessere Druckbreite realisieren, erscheint diese Laenge als
+ausreichend. Werden in einem Programm groessere Laengen ge-
+fordert, so ist die Kette zu teilen und durch entsprechende
+Befehle zu manipulieren.
+ 
+
+                        BASIC-T   Sprachbeschreibung   8
+ 
+ 
+               /   \             /   \
+              |  '  |           |  '  |
+      zkk ::=<       > Zeichen <       >
+              |  "  |           |  "  |
+               \   /             \   /
+ 
+Eine Zeichenkette wird durch Apostrophe oder Hochkommata einge-
+schlossen. Sollen diese innerhalb einer Zeichenkette definiert
+werden, dann sind sie dort doppelt anzugeben.
+ 
+Bsp.:
+ 
+     angegebene Zeichenkette               interne Darstellung
+ 
+     "TESTKETTE"                           TESTKETTE
+     ""                                    leere Zeichenkette
+     "A""b''C"                             A"b'C
+ 
+Das zweite Beispiel fuehrte zur Definition einer Zeichenkette,
+die keine Zeichen enthaelt.Sie kann beispielsweise zur Initia-
+lisierung oder zum Loeschen einer Zeichenkette benutzt werden.
+ 
+ 
+ 
+   4.4. Namensbildung
+  --------------------
+ 
+ 
+Die Namen im BASIC-T werden sehr einfach gebildet.
+ 
+    name ::= bu [ bu | zi ]
+ 
+Sie bestehen aus maximal 2 Zeichen, deren erster ein Buchstabe
+sein muss. Diese kurzen Namen sind ein Kompromiss zwischen ge-
+ringem Speicherumfang im Rechner und einer genuegend grossen
+Anzahl von verschiedenen Namen. Es wird also bei den maximal 992
+zu bildenden Namen nicht immer moeglich sein, diese aus sinn-
+entsprechenden Buchstaben zu bilden, wie in vielen anderen
+problemorientierten Sprachen.
+ 
+Bsp.:
+ 
+  X
+  AB
+  5C             falsch, erstes Zeichen eine Ziffer
+  SUMME          falsch, zu lang
+ 
+Durch ein weiteres anzufuegendes Zeichen kann dem Namen noch
+eine Zuordnung zu einem bestimmten Datentyp erhalten.
+ 
+ 
+
+                        BASIC-T   Sprachbeschreibung   9
+ 
+ 
+ 
+   4.5. Numerische Variablen
+  ---------------------------
+ 
+ 
+Variablen sind Datentypen, die waehrend des Programmlaufes durch
+verschiedene Anweisungen ihren Inhalt veraendern koennen. Die
+numerischen Variablen unterscheiden sich genau wie die nume-
+rischen Konstanten in die Formen Gleitpunktvariable und ganz-
+zahlige Variable.
+ 
+  ngv::= name
+ 
+  niv::= name%
+ 
+Die Unterscheidung erfolgt auch hier wieder durch ein an den
+Namen der ganzzahligen Daten angefuegtes Prozentzeichen. Fuer
+den moeglichen Wertevorrat, den die Variablen annehmen koennen,
+gilt das fuer die Konstanten Ausgefuehrte.
+ 
+Bsp.:
+ 
+  A             Gleitpunktvariable
+  X1                 - " -
+  NR%           ganzzahlige Variable
+  I%                 - " -
+ 
+ 
+ 
+ 
+   4.6. Zeichenkettenvariable
+  ----------------------------
+ 
+ 
+Analog zu den numerischen Datenobjekten gibt es im BASIC-T auch
+bei den Zeichenketten die Moeglichkeit der Arbeit mit Variablen
+ 
+  zkv::= name$
+ 
+Typkennzeichen fuer Zeichenkettenvariablen ist das Waehrungs-
+zeichen im Anschluss an den Variablennamen.
+ 
+Bsp.:
+ 
+  TS$
+  A$
+ 
+ 
+ 
+   4.7.  Feldvariablen
+  ---------------------
+ 
+ 
+In der Praxis erweist es sich oft als guenstig, eine gewisse An-
+zahl von Werten zusammenzufassen, wie es beim Umgang mit Tabel-
+len ueblich ist. BASIC-T bietet dazu den Umgang mit eindimensio-
+nalen Feldern ( Vektoren ) und zweidimensionalen Feldern ( Ma-
+trizen ) sowohl fuer numerische als auch fuer Zeichenkettenwer-
+te. Diese Felder werden ueber ihren Namen angesprochen und in-
+
+                        BASIC-T   Sprachbeschreibung  10
+ 
+ 
+nerhalb des Feldes wird ueber einen nachfolgenden Index zuge-
+griffen.
+ 
+ 
+  ngf::= ngv (ausd [,ausd] )
+ 
+  nif::= niv (ausd [,ausd] )
+ 
+  zkf::= zkv (ausd [,ausd] )
+ 
+ 
+Das Metasymbol ausd bezeichnet einen numerischen Ausdruck und
+wird spaeter noch ausfuerlich beschrieben. Im einfachsten Fall
+laesst er sich jetzt durch eine numerische Konstante ersetzt
+denken. So bezeichnet
+ 
+     X(5)
+ 
+das 5.Element eines Vektors aus Gleitpunktwerten mit dem Namen X
+ 
+    AB$(2,3)
+ 
+bezeichnet das 2.Element aus der 3. Zeile einer Matrix von Zei-
+chenketten, die den Namen AB$ traegt.
+ 
+Es sei noch besonders darauf hingewiesen, dass BASIC-T einen
+Unterschied zwischen skalaren Variablen und Feldvariablen macht.
+So bezeichnet
+ 
+  A       eine Gleitpunktvariable und
+  A(I,J)  eine Matrix von Gleitpunktvariablen,
+ 
+die keinerlei Beziehungen zueinander haben und beide parallel in
+einem Programm benutzt werden duerfen. Dagegen ist der gleich-
+zeitige Gebrauch von
+ 
+  A(I)    Vektor und
+  A(I,J)  Matrix
+ 
+in einem Programm verboten und fuehrt fuer alle Werte J <> 1 zu
+Fehlern.
+ 
+ 
+   4.8. Symbolische Marken
+  -------------------------
+ 
+ 
+BASIC-T bietet im Gegensatz zur Standardvariante und sehr vielen
+verbreiteten Erweiterungen den grossen Vorteil der Benutzung
+symbolischer Marken. Jede Zeile in eine BASIC-T-Programm kann
+mit einer symbolischen Marke versehen werden, auf die dann von
+allen Stellen des Programmes zugegriffen werden kann.
+Die Namensbildung der symbolischen Marken entspricht der allge-
+meinen Namensbildung und wird bei ihrem Auftreten am Anfang ei-
+ner Zeile durch einen Doppelpunkt von der folgenden Quellinfor-
+mation getrennt.
+
+                        BASIC-T   Sprachbeschreibung  11
+ 
+ 
+ 
+  sma::= name:
+ 
+Bsp.:
+ 
+ M:
+ M1:
+ M_1:           falsch, Unterstreichung im Namen
+ 12:            falsch, kein Buchstabe als erstes Zeichen
+ 
+ 
+   4.9. Dateinamen
+  -----------------
+ 
+ 
+In der erweiterten Dateiarbeit koennen Dateien mit symbolischen
+Namen bezeichnet werden. Dateinamen besitzen als Typkennzeichen
+das kommerzielle 'UND' (&).
+ 
+  sda::= name&
+ 
+Bsp.:
+ 
+  D&
+  DA&
+  DATEI&        falsch, zu lang
+ 
+
+                        BASIC-T   Sprachbeschreibung  12
+ 
+ 
+ 
+     5.   Anweisungen
+ 
+   5.1. Numerische Ausdruecke
+  ----------------------------
+ 
+ 
+Eines der Hauptanwendungsgebiete der Rechentechnik sind die Aus-
+fuehrung von numerischen Berechnungen. Dazu bietet BASIC-T die
+Programmierung von Ausdruecken entsprechend der in der EDV ueb-
+lichen Darstellungsform.
+Die syntaktische Regel zur Definition von Ausdruecken lautet:
+ 
+ 
+                       /  ngk  \
+           /.NOT.\    |   nik   |    /    \
+          |       |   |   ngf   |   | arop |
+ ausd::= <    -    > <    nif    > <        >
+          |       |   |   nfk   |   | loop |
+           \ [+] /    |  (ausd) |    \    /
+                       \       /
+ 
+                     |__________________/...............
+ 
+ 
+Ein arithmetischer Ausdruck ist eine Folge von Operanden und
+Operatoren. Als Operanden sind numerische Konstanten und Variab-
+len der skalaren als auch in der indizierten Form moeglich. Als
+Datentyp sind Gleitpunkt- und ganze Zahlen zugelassen.
+ 
+Bsp.:
+ 
+ 5                      minimalste Form als einzelne Konstante
+ 12.34+17%-A+B1%        gemischte Form mit Konstanten und
+                        Variablen
+ A(I,J)*A(J,K)          Verknuepfung von Feldelementen
+ 
+Als Operanden sind weiter zwei Arten von numerischen Funktionen
+zugelassen, die in einem spaeteren Abschnitt noch erlaeutert
+werden.
+Von besonderen Interesse ist die in der untersten Zeile angege-
+bene syntaktische Konstruktion. Dort wird das Metasymbol 'ausd'
+rekursiv aufgerufen. Es koennen dadurch in runde Klammern einge-
+schlossene Ausdruecke wieder Teil eines komplexeren Ausdruckes
+sein.
+ 
+Bsp.:
+ 
+ (5+A)*((2+X%)/(Y%-7%))
+ 2*(-5)
+ .NOT.(A%.AND.B%.OR.C%)
+ 
+
+                        BASIC-T   Sprachbeschreibung  13
+ 
+ 
+ 
+Moegliche Operatoren sind die logische und die arithmetische Ne-
+gation als Vorzeichenoperatoren. Das positive Vorzeichen ist zu-
+gelassen, aber redundant. Zur Verknuepfung gibt es logische und
+und arithmetische Operatoren (siehe Abschnitt 3). Die Operatoren
+haben unterschiedliche Prioritaeten, d.h. sie binden die Operan-
+den unterschiedlich stark. Wie es aus der Mathematik bekannt
+ist, "geht Punktrechnung vor Strichrechnung" . Die komplette
+Reihenfolge der Prioritaeten lautet:
+ 
+          +  -           |
+                         |
+          *  /           |         steigende
+                         |
+          **             |
+                         |
+  log. Verknuepfungen    |         Prioritaet
+                         |
+      Vorzeichen         V
+ 
+ 
+Bei gleichen Prioritaeten werden die Operatoren von links nach
+rechts entsprechend ihres Auftretens abgearbeitet.
+ 
+Bsp.:
+ 
+    Ausdruck:   -A+B*C/D**E-F/G.AND.1
+ 
+   Reihenfolge: 1 7 4 5 3  8 6   2
+ 
+ 
+Eine von dieser  durch die Prioritaet der Operatoren festge-
+legten Reihenfolge abweichende Bearbeitung kann durch die
+Klammerung und dadurch Aufteilung des Ausdrucks erreicht werden.
+Klammern haben stets die hoechste Prioritaet bei der Ausdrucks-
+aufloesung.
+ 
+Bsp.:
+ 
+    Ausdruck:     -(A+B)*C/D**((E-F)/G).AND.1
+ 
+   Reihenfolge:   4  1  7 8 6    2  3    5
+ 
+ 
+Bereits im Abschnitt 4.2. bzw. 4.5. wurde beschrieben, dass
+BASIC-T neben der standardmaessig vorhandenen Gleitpunktrechnung
+noch die Arithmetik fuer ganze Zahlen im 2-Byte-Format bein-
+haltet. Zur Vereinfachung der Programmierung ist es erlaubt,
+beide Datentypen gemischt anzuwenden. BASIC-T uebernimmt dabei
+die Konvertierung der Formate ineinander. Fuer den Programmierer
+sind aber einige wichtige Besonderheiten zu beachten, die im
+folgenden durch Beispiele erlaeutert werden.
+ 
+   -Konvertierung der Datentypen
+ 
+     Die Konvertierung von ganzen Zahlen in die Gleitpunkt-
+     darstellung erfolgen stets exakt. Bei der Konvertierung
+     der Gleitpunktzahlen in die ganzen Zahlen erfolgt ein
+     Test auf Bereichsueberlauf. Liegen die Gleitpunktzahlen
+
+                        BASIC-T   Sprachbeschreibung  14
+ 
+ 
+     ausserhalb des fuer ganze Zahlen zugelassenen Wertebereich,
+     so erfolgt eine Fehlermeldung und der Programmlauf wird ab-
+     gebrochen. Bei einer durchfuehrbaren Konvertierung werden
+     die Nachkommastellen gerundet.
+ 
+     Bsp.:
+ 
+        +125%           -->   +0.125E+3
+ 
+        +0.735E+4       -->   +7350%
+ 
+        -0.12345E+2     -->   -12%
+ 
+        -0.54321E+5     -->   Fehlermeldung
+ 
+        +0.155556E+1    -->   +2%
+ 
+ 
+ 
+     -Arithmetik fuer ganze Zahlen
+ 
+       Die Addition und die Subtraktion werden vorzeichenrichtig
+       ausgefuehrt. Bei Bereichsueberlauf  <-32768 oder >+32767
+       erfolgt eine Fehlermeldung und Programmabbruch.
+       Erfolgt bei der Multiplikation ein Zahlenbereichsueber-
+       lauf, so wird ab dann automatisch in das Gleitpunktfor-
+       mat umgeschaltet. Bei der Division ist besonders zu
+       beachten, dass eine Rundung vom Ergebnis vorgenommen
+       wird. Die Division durch 0 fuehrt zur Fehlermeldung und
+       Programmabbruch.
+ 
+       Bsp.:
+ 
+        12723%+527%-29753%              =-16503%
+ 
+        12723%+527%+29753%              >+32767%
+                                =>Fehlermeldung
+        -25%*38%                        =-950%
+ 
+        278%*593%                       =0.164854E+06
+                                =>Umschaltung Gleitpunkt
+ 
+        2%/3%                           =1%  durch Aufrundung
+ 
+        1%/3%                           =0%  durch Abrundung
+ 
+        17%/0%                  =>Fehlermeldung
+ 
+ 
+ 
+     -Gemischtes Auftreten von Gleitpunkt- und ganzen Zahlen
+ 
+       Die Ermittlung des Ergebnisformates einer Verknuepfung
+       von 2 Operanden erfolgt nach einer einfachen Regel:
+       Das Datenformat ist nur dann ganzzahlig, wenn beide (!)
+       Operanden vom ganzahligen Typ sind. Sobald ein Operand in
+       der Gleitpunktdarstellung vorliegt, dann ist auch das Er-
+       gebnis der Verknuepfung eine Gleitpunkzahl. Dabei ist die
+
+                        BASIC-T   Sprachbeschreibung  15
+ 
+ 
+       Reihenfolge der Abarbeitung zu beachten, die sich durch
+       Paritaetsregeln und Klammerung ergibt.
+ 
+       Bsp.:
+ 
+        1000%*1%/3%    =333%      da 1000%*1%=1000%
+                                     1000%/3%=333% durch Rundung
+ 
+        1000%*(1%/3%)  =0%        da 1%/3%=0%      durch Rundung
+                                     1000%*0%=0%
+ 
+        1000%*1%/3     =0.333333333E+03
+                                  da 1000%*1%=1000%
+                                     1000%/3=333.333333
+                                       Berechnung als Gleitpunkt
+ 
+       Diese Beispiele sollten verdeutlichen, dass der gemischte
+       Einsats beider Zahlenformate doch mit einigen zusaetzli-
+       chen Ueberlegungen verbunden sein muss .
+       Typische Eisatzfaelle fuer die ganzen Zahlen sind logi-
+       sche Groessen, die Organisation von Zaehlschleifen und
+       die Angabe von Feldindizes.
+ 
+     -Logische Verknuepfungen
+ 
+       Alle logischen Verknuepfungen sind generell fuer den Da-
+       tentyp 'ganze Zahl' definiert. Falls sie auf Gleitpunkt-
+       zahlen angewandt werden, erfolgt erst eine interen Kon-
+       vertierung in den ganzen Typ. Bei dieser Konvertierung
+       ist eine Fehlermeldung bei Zahlenbereichsueberlauf moeg-
+       lich.
+       Beide Operanden werden bitweise parallel fuer alle 16 Bit
+       entsprechend der angegebenen Operation miteinander ver-
+       knuepft.
+ 
+       Bsp.:
+        B'1001.AND.B'111                =B'1
+        H'9.XOR.H'7                     =B'1110
+        7%.NOR.9                        =B'1111111111110000
+        .NOT.H'3333                     =B'1100110011001100
+ 
+       Die logischen Verknuepfungen lassen sich sehr vorteilhaft
+       fuer die digitale Simulation einsetzen. Deshalb sind auch
+       solche schaltkreistypischen Operationen wie .NAND. und
+       .NOR. im BASIC-T mit implementiert worden. Weitere haeufig
+       benutzte Einsatzgebiete sind das Ueberwachen von bestimm-
+       ten Bits einer Eingabeleitung oder eines Speicherplatzes
+       bzw. die Maskierung von Operanden.
+ 
+ 
+   5.2. Zeichenkettenausdruecke
+  ------------------------------
+ 
+ 
+Beim Einsatz einer Programmiersprache im Bereich der nichtnume-
+rischen Datenverarbeitung besteht der Wunsch nach einer beliebi-
+gen Manipulation von Zeichenketten. BASIC-T bietet dazu eine
+Reihe von Moeglichkeiten. Aehnlich wie bei den numerischen Aus-
+druecken koennen auch Zeichenketten beliebig miteinander ver-
+knuepft werden.
+ 
+            / zkk  \
+           |        |
+  zaus::= <   zkf    > !!
+           |        |
+            \ zfk  /
+ 
+           |____________/.....
+ 
+ 
+Als Verkettungsoperator wurde das Ausrufungszeichen (!) gewaehlt,
+da der senkrechnte Strich (|) auf sehr vielen Terminals nicht
+vorhanden ist. Das Ausrufungszeichen hatte bisher in BASIC noch
+keine syntaktische Bedeutung.
+Diese Definition erlaubt es, Zeichenkettenkonstanten, skalare
+oder indizierte Zeichenkettenbariable und/oder die Ergebnisse
+von Zeichenkettenfunktionen (die in einem folgenden Abschnitt
+noch behandelt werden) beliebig oft miteinander zu verketten,
+d.h. aneinanderzufuegen. Als einzigee Einschraenkung darf die im
+Ergebnis der Verkettung entstandene Zeichenkette nicht laenger
+als 255 Zeichen werden.
+ 
+Bsp.:
+ 
+ 'ZEICHEN'!!'KETTE'             ='ZEICHENKETTE'
+
+                        BASIC-T   Sprachbeschreibung  16
+ 
+ 
+ 'A'!!'b'!!'c'                  ='Abc'
+ B$(I%,J)!!' Meter'
+ 
+Durch die noch mit vorhandenen Zeichenkettenfunktionen hat der
+Programmierer eine grosse Anzahl von Moeglichkeiten der Textver-
+arbeitung.
+ 
+ 
+ 
+   5.3. E/A-Anweisungen
+  ----------------------
+ 
+ 
+Im folgenden Abschnitt sind die vielfaeltigen Varianten der Da-
+tenein- und -ausgaben beschrieben. Die Anweisungen werden be-
+reits zu diesem fruehen Zeitpunkt definiert, da dann die Moeg-
+lichkeit besteht, kleinere Programme zu erstellen und zu testen.
+Die im folgenden angefuehrten Beispiele sind damit auf dem Rech-
+ner abarbeitungsfaehig und der Porgrammierer ist in der Lage,
+seine erworbenen Kenntnisse sofort anzuwenden.
+ 
+ 
+   5.3.1. Ausgabeanweisungen
+  ...........................
+ 
+ 
+BASIC-T besitzt eine Standard-Ausgabeanweisung fuer numerische
+und Zeichenkettenwerte in beliebigen Darstellungsformaten.
+
+                        BASIC-T   Sprachbeschreibung  17
+ 
+ 
+ 
+                   / psta \
+                  |        |
+  pri_a::= PRINT <   ausd   > ,  [ , ]
+                  |        |
+                   \ zaus /
+                 |____________/......
+ 
+ 
+Die Ausgabeanweisung wird durch das Schluesselwort PRINT gekenn-
+zeichnet. Als Operanden sind numerische und/oder Zeichenketten-
+ausdruecke gestattet. Darueberhinaus gibt es noch eine Reihe von
+Formatsteueranweisungen.
+ 
+Gibt man in den Rechner ein:
+ 
+  PRINT -2%*7%
+ 
+so wird diese Anweisung sofort ausgefuehrt (Tischrechnermode).
+BASIC-T berechnet diesen Ausdruck als ganze Zahl und gibt ihn im
+Standardformat fuer diesen Typ aus:
+ 
+    -14
+ 
+Ganze Zahlen belegen im Standardformat 6 Plaetze, von denen der
+erste fuer das Vorzeichen reserviert ist.
+Bei
+ 
+  PRINT -2*7
+ 
+wird im Gleitpunkformat gerechnet und ausgegeben. Die Standard-
+form der Ausgabe hat 16 Stellen, die sich wie folgt aufteilen:
+        -Vorzeichen der Zahl
+        -Dezimalpunkt
+        -Manthissenstellen
+        -Exponentenkennzeichen E
+        -Exponentenvorzeichen
+        -Exponent
+Die entsprechende Ausgabe sieht so aus:
+ 
+  -0.14000000E+02
+ 
+Die Ausgabe von Zeichenketten erfolgt linksbuendig in der Laenge
+des angegebenen Operanden.
+ 
+  PRINT 'Shakespeare''s'!!' '!!'""Hamlet""'
+ 
+  Shakespeare's "Hamlet"
+ 
+Diese einfachen Ausgabeanweisungen reichen fuer einen grossen
+Teil der Anwendungsfaelle bereits aus. Um aber auch Ausgabe-
+listen entsprechend den Anforderungen der Nutzer optimal zu ge-
+stalten, bietet BASIC-T eine Reihe von speziellen Formatsteuer-
+befehlen, die ein variables Druckbild gestalten helfen.
+ 
+
+                        BASIC-T   Sprachbeschreibung  18
+ 
+ 
+ 
+                          /   \              /FIX\
+                         | COL |            | FLO |
+  psta::= PAGE | SKIP | <       > (ausd) | <       > n:n
+                         | TAB |            | HEX |
+                          \   /              \BIN/
+ 
+ 
+Dabei haben die Schluesselworte folgende Bedeutung:
+ 
+PAGE     Ausgabe Seitenvorschub. Dieser Befehl ist nur bei
+         Druckerausgaben sinnvoll.
+ 
+SKIP     Ausgabe Zeilenschaltung mit Ruecksetzen auf die vor-
+         derste Zeichenposition.
+ 
+COL(x)   Die Ausgabeposition wird bis auf die Stelle x vorge-
+         setzt. Ist die Position x bereits ueberschritten, er-
+         folgt zuvor ein interner Einschub von SKIP.
+ 
+TAB(x)   Einschub von x Leerzeichen.
+ 
+FIX a:b  Naechste numerische Ausgabe erfolgt im Festkommaformat
+         mit insgesamt a (max. 60) Stellen, davon b (max 9) nach
+         dem Komma. Es ist zu beachten, dass in a auch das Vor-
+         zeichen und der Dezimalpunkt mitgezaehlt werden.
+ 
+FLO a:b  Naechste numerische Ausgabe in Manthissendarstellung
+         mit insgesamt a (max. 60) Stellen, davon b (max. 9)
+         Manthissenstellen. Es ist zu beachten, dass stets gel-
+         ten muss a>=b+7, da in a auch Vorzeichen, Punkt, Expo-
+         nentenkennzeichen und Exponent mitzaehlen.
+ 
+BIN a:b  Nachste numerische Ausgabe in der binaeren Form. Es
+         werden a Stellen (max. 60) belegt, davon werden b (max.
+         16) Stellen fuer die Zahlendarstallung benutzt.
+ 
+HEX a:b  Naechste numerische Ausgabe im hexadezimalen Format mit
+         a (max. 60) Stellen, davon b (max. 4) Stellen fuer die
+         Darstellung der Zahl.
+ 
+Erfolgt die Angabe von a oder b bei den Formaten FIX oder FLO
+fehlerhaft, so werden die Standardformate angenommen.
+Bei den Ausgabeformaten BIN und HEX erfolgt zuvor eine Konver-
+tierung in eine ganze Zahl. Die Zahl b gibt die Anzahl der Stel-
+len an, die auszugeben sind. Dabei erfolgt eine Maskierung, das
+heisst, eventuelle fuehrende Stellen werden ohne Fehlermeldung
+weggelassen.
+Die Angabe eines Ausgabeformates gilt immer nur fuer eine Ausga-
+beoperation, das heisst fuer einen numerischen Operanden. Nach
+deren Abarbeitung sind wieder die Standardformate eingestellt.
+Werden mehrere Operanden in einer Ausgabeanweisung angegeben, so
+werden diese hintereinander entsprechend der geforderten Formate
+auf einer Zeile ausgegeben. Nach jeder PRINT-Anweisung erfolgt
+eine Zeilenschaltung. Dieser Zeilenvorschub kann durch ein ab-
+schliessendes Komma verhindert werden.
+ 
+
+                        BASIC-T   Sprachbeschreibung  19
+ 
+ 
+Bsp.:
+ 
+  PRINT FIX 7:4,3.1415926
+   3.1416                       Es erfolgt eine Rundung der
+                                letzten Stelle
+ 
+  PRINT FLO 15:2,2.71828
+         0.27E+01
+ 
+  PRINT 'A',TAB(3),'b',COL(7),'c',
+  A   b c                       Bei der folgenden PRINT-Anwei-
+                                sung wird sofort hinter c weiter
+                                ausgegeben.
+ 
+  PRINT HEX 6:4,H'1234,SKIP,BIN 8:4,H'1234
+    1234
+      0100
+ 
+ 
+ 
+   5.3.2. Eingabeanweisungen
+  ...........................
+ 
+Zur Eingabe von Daten in ein laufendes Programm dient die INPUT-
+Anweisung:
+ 
+                          / ngf \
+                         |       |
+  inp_a::= INPUT [ zkk ]<   nif   > ,
+                         |       |
+                          \ zfk /
+ 
+                         |__________/.....
+ 
+ 
+Durch eine solche Anweisung koennen alle Variablen, einschliess-
+lich der Elemente von Feldern von ausserhalb dem Programm einge-
+geben werden. Mittels einer nach dem Schluesselwort INPUT ange-
+gebenen Zeichenkettenkonstante kann eine Eingabeanforderung aus-
+gegeben werden. Die beiden folgenden Beispiele haben dadurch die
+gleichen Auswirkungen
+ 
+1.   PRINT 'Eingabe: ',
+     INPUT A
+ 
+2.   INPUT 'Eingabe: 'A
+ 
+Es wird dabei die Zeichenkette 'Eingabe: ' ausgegeben und for-
+dert zur Eingabe auf. Der einzugebende Wert muss numerisch sein,
+und wird der Variablen A zugeordnet.
+ 
+Um die INPUT-Anweisung noch durch weitete Beispiele zu illustrie-
+ren, muss an dieser Stelle ein Vorgriff auf die Programmerstel-
+lung und -abarbeitung erfolgen. Die bisherigen Beispiele wurden
+immer sofort vom BASIC-T verarbeitet und die Anweisungen sofort
+danach wieder aus dem Speicher geloescht. Man nennt diese Ar-
+beitsweise den Tischrechnermode.
+
+                        BASIC-T   Sprachbeschreibung  20
+ 
+ 
+Will man eine Anweisung nicht nur einmalig sondern wiederholt
+uarbeiten, muss man sie fest im Rechner speichern. Dazu wird ei-
+ne jede BASIC-Zeile mit einer Zeilennummer von 1...32767 verse-
+hen, die dann von der eingentlichen Anweisung gefolgt wird. Bei
+der Eingabe von mehreren Anweisungen werden unterschiedliche
+Zeilennummern vergeben. Beim Programmlauf erfolgt die Abarbei-
+tung der Quellzeilen entsprechend ihrer Sortierung nach Zeilen-
+nummern.
+Vor jedem Beispiel sollte das Kommando
+ 
+NEW
+ 
+eingegeben werden, damit der Grundzustand des BASIC-T-Systems
+hergestellt wird und eventuell noch gespeicherte Programme ge-
+loescht werden.
+Zur Abarbeitung wird ein gespeichertes Programm durch das
+Kommando
+ 
+RUN
+ 
+gebracht.
+ 
+Bsp.:
+ 
+  Eingeben:     NEW
+                100 INPUT 'Zahl eingeben:'A
+                200 PRINT FIX 10:3,A
+                RUN
+  ==>Ausgabe:   Zahl eingeben:
+  Eingabe       12.34
+  ==> Ausgabe       12.340
+  Fertigmeldg.: READY
+ 
+Dieses Beispiel zeigt einen einfachen Programmaufbau. Die beiden
+Programmzeilen 100 und 200 sind dadurch im Rechner gespeichert
+und koennen mittels RUN-Kommando beliebig oft durch den BASIC-T-
+Laufzeitinterpreter bearbeitet werden.
+Der entsprechend der Anforderung eingegebene Wert muss in seinem
+syntaktischen Aufbau einer numerischen Konstante entsprechen und
+kann noch durch ein negatives Vorzeichen komplettiert werden.Je-
+der einzelne Eingabewert muss durch ein NL (Newline) abgeschlos-
+sen sein.
+ 
+Bsp.:
+ 
+  NEW
+  100 INPUT 'Zwei Zahlen eingeben: 'A,B
+  110 PRINT SKIP,'A:',FIX 16:3,A
+  120 PRINT 'B:',FIX 16:3,B
+  130 PRINT 'SUMME:',FIX 12:3,A+B
+  RUN
+  Zwei Zahlen eingeben:
+  125
+  -0.17
+  A:         125.000
+  B:-          0.170
+  SUMME:     124.830
+  READY
+ 
+
+                        BASIC-T   Sprachbeschreibung  21
+ 
+ 
+ 
+  NEW
+  10 PRINT 'Druck unterschiedlicher Formate'
+  20 INPUT 'Zahl eingeben:'X
+  30 PRINT FLO 16:8,X,SKIP,FIX 16:8,X
+  40 PRINT HEX 16:4,X,SKIP,BIN 16:8,X
+  RUN
+  Druck unterschiedlicher Formate
+  Zahl eingeben:
+  125.1
+    0.12510000E+03
+      125.10000000
+              007D
+          01111101
+  READY
+ 
+ 
+ 
+   5.3.3. Geraetezuweisungen
+  ...........................
+ 
+ 
+Um mit einen BASIC-Programm effektiv arbeiten zu koennen, reicht
+es nicht allein aus, Daten ueber Tastatur und Bildschirm auszu-
+tauschen. Oft muessen Rechenergebnisse dauerhaft und in Form ei-
+ner Liste aufbewahrt werden. Auch erweist es sich als erforder-
+lich, Daten in einer maschinenlesbaren Form auszugeben, um sie
+dann in einem nachfolgendem Programmlauf eventuell sogar auf ei-
+nem anderen Datenverarbeitungssystem wieder einzugeben. Als sol-
+che Datentraeger sind Lochband, Floppy-Disk oder (Kassetten-)
+Magnetband denkbar.
+Die einfachste Moeglichkeit der Realisierung bietet sich durch
+unterschiedliche Ein-/Ausgabebefehle fuer die einzelnen Geraete.
+Viel optimaler ist es aber, mit allgemeinen E/A-Befehlen zu ar-
+beiten und dazu noch spezielle Geraetezuweisungsbefehle zu defi-
+nieren. Dadurch ergibt sich eine sehr elegante Arbeitsweise. Das
+Programm wird ganz allgemein gehalten und ohne Geraetezuweisung
+aufgebaut. Die Zuweisung wird erst zur Laufzeit des Programmes
+vorgenommen. Damit koennen beispielsweise Drucklisten waehrend
+der Programmtestung auf dem Bildschirm ausgegeben, oder bei de-
+fekten Drucker auf das Magnetband zugewiesen werden.
+BASIC-T bietet diese geschilderten Moeglichkeiten durch den Ge-
+raetezuweisungsbefehl
+ 
+                           /   \
+                          | zkk |
+  asgn_a::= ASGN dat=ger <       >
+                          | zkv |
+                           \   /
+ 
+Diese Anweisung ordnet eine Datei einem bestimmten Geraet zu.
+Die von BASIC-T unterstuetzten Dateien sind:
+ 
+DAI     Data Input
+        Ueber diese Datei werden alle mit INPUT und INCHAR ange-
+        forderten Daten eingelesen.
+
+                        BASIC-T   Sprachbeschreibung  22
+ 
+ 
+ 
+DAO     Data Output
+        Dieser Datei werden alle mittels PRINT bzw. OUTCHAR aus-
+        gegebenen Daten zugeordnet.
+ 
+COI     Command Input
+COO     Command Output
+        Ueber diese beiden Dateien erfolgt der gesamte Datenaus-
+        tausch des BASIC-T-Systems zur Programmerstellung und
+        -testung. Das sind alle Kommandos und Programmzeilen
+        waehrend der Einlesephase und die Fehlermeldungen des
+        Systems.
+ 
+Darueber hinaus koennen im BASIC-T noch weitere Dateien vom
+Nutzer definiert und symbolisch benannt werden. Zusammenfassend
+ergibt sich:
+ 
+   dat::= DAI | DAO | COI | COO | sda
+ 
+ 
+BASIC-T unterstuetzt ein breites Spektrum an E/A-Geraeten, jedoch
+ist hier besonders zu beachten, dass die endgueltige Geraetever-
+gabe erst bei der Implementierung des BASIC-T-Systems auf dem
+Anwenderrechner erfolgt. Die nachfolgende Aufzaehlung beinhaltet
+den maximalen Umfang. Die tatsaechlich angeschlossenen Geraete
+sind vom Systemprogrammierer zu erfragen.
+ 
+Eingabe:
+........
+ 
+KEY     Keyboard                Tastatur
+        ---
+PTR     Paper Tape Reader       Lochbandleser
+        -     -    -
+MTR     Magnetic Tape Reader    Kassettenmagnetband
+        -        -    -
+FDR     Floppy Disk Reader      Diskette
+        -      -    -
+ 
+Ausgabe:
+........
+ 
+SCR     Screen                  Bildschirm
+        ---
+LPR     Line Printer            Drucker
+        -    --
+PTP     Paper Tape Punch         Lochbandstanzer
+        -     -    -
+MTW     Magnetic Tape Write     Kassettenmagnetband
+        -        -    -
+FDW     Floppy Disk Write       Diskette
+        -      -    -
+ 
+Bsp.:
+ 
+  NEW
+  100 ASGN DAO=SCR
+  110 PRINT 'AUSGABE UEBER BILDSCHIRM'
+  120 ASGN DAO=LPR
+
+                        BASIC-T   Sprachbeschreibung  23
+ 
+ 
+  130 PRINT 'AUSGABE UEBER DRUCKER'
+  140 ASGN DAO=PTP
+  150 PRINT 'AUSGABE UEBER STANZER'
+  RUN
+ 
+  (Achtung! Es sind der Drucker und der Stanzer bereitzumachen)
+ 
+  NEW
+  100 ASGN DAO=SCR
+  110 ASGN DAI=KEY
+  120 INPUT 'Numerischer Wert: 'A
+  130 PRINT A
+  140 ASGN DAO=PTP
+  150 PRINT A,SKIP,A+A,SKIP,A*A
+  RUN
+ 
+Der durch diesen Programmlauf ausgegebene Lochstreifen wird in
+dem folgenden Beispiel wieder eingelesen und ueber Bildschirm
+protokolliert.
+Es ist zu beachten, dass im letzten Beispiel die SKIP-Formatele-
+mente unbedingt noetig sind, da alle mit INPUT eingelesenen Wer-
+te durch Newline getrennt sein muessen.
+ 
+Bsp:
+ 
+  NEW
+  100 ASGN DAO=SCR
+  110 ASGN DAI=PTR
+  120 INPUT X
+  130 PRINT 'EINFACH:',COL(15),X
+  140 INPUT X
+  150 PRINT 'DOPPELT:',X
+  160 INPUT X
+  170 PRINT 'QUADRAT:',X
+  RUN
+ 
+  Der Lochsteifen ist einzulegen
+ 
+ 
+Bei Geraeten mit Dateiarbeit (MTR, MTW, FDR, FDW) muss zu-
+saetzlich noch ein Parameter (Typ: Zeichenkette) angegeben
+werden. Bei der Abarbeitung der Anweisung werden die ersten
+6 Zeichen der Zeichenkette (bei kuerzeren Zeichenketten durch
+Leerzeichen ergaenzt) der Geraetesteuerroutine als Dateiname
+uebergeben. In der OPEN-Routine kann dadurch der Datentraeger
+entsprechend positioniert werden.
+ 
+Werden mehrere Dateien gleichzeitig auf die Geraete KEY, SCR,
+PTR, PTP oder LPR zugewiesen, dann erfolgen die Ein- bzw.
+Ausgaben aller Dateien gemischt, durch den Zeitpunkt ihres
+Auftretens bestimmt, auf diese Geraete.
+Bei den Geraeten FDR, MTR, FDW und MTW wird jedoch durch den
+Dateinamen noch weiter unterschieden. Es ist also beispiels-
+weise moeglich, gleichzeitig mehrere Datei von Diskette pa-
+rallel zu lesen.
+ 
+
+                        BASIC-T   Sprachbeschreibung  24
+ 
+ 
+ Bsp.:
+ 
+   ASGN DAI=FDR 'DATEN'
+   ASGN COI=FDR 'BEFEHL'
+ 
+In diesem Beispiel werden die Date von der Datei 'DATEN'
+vom Diskettenlaufwerk gelesen. Danach erfolgt die Umschaltung
+der Kommandoeingabe ebenfalls auch Diskette, aber auf die
+Datei 'BEFEHL'. In dieser Datei werden Kommandos erwartet,
+die sofort ausgefuehrt werden. Es besteht die Moeglichkeit,
+in dieser Datei einen kompletten Joblauf vorzubereiten.
+Dadurch wird es ermoeglicht, in der Dialogsprache BASIC eine
+Stapelverarbeitung durchzufuehren! Dies ist eine wesentliche
+Weiterentwicklung, die in den wenigsten BASIC-Versionen ge-
+geben ist.
+ 
+Abschliessend soll noch bemerkt werden, dass die letzte An-
+weisung der Datei 'BEFEHL' das Kommando:
+ 
+   ASGN COI=KEY
+ 
+sein muss, um die Weiterarbeit ueber die Tastatur steuern zu
+koennen.
+ 
+ 
+   5.4.  Die Ergibtanweisung
+  ---------------------------
+ 
+Werden in einem Programm Variablen benutzt, so ist es vor deren
+erstem Auftreten innerhalb eines Ausdruckes notwendig, ihnn ei-
+nen Wert zuzuweisen. Eine derartige Wertzuweisung erfolgt durch
+die Ergibtanweisung, die sowohl fuer numerische, als auch fuer
+Zeichenkettenvariablen existiert.
+ 
+                       /   \
+                      | ngf |
+   nerg_a::= [ LET ] <       > = ausd
+                      | nif |
+                       \   /
+ 
+   zerg_a::= [ LET ] zkf = zaus
+ 
+ 
+Die Ergibtanweisung kann durch das Schluesselwort LET gekenn-
+zeichnet werden. Es ist jedoch redundant und wird meist wegge-
+lassen, was zu einer deutlichen Einsparung bei der Programmein-
+gabe fuehrt.
+Bei der numerischen Ergibtanweisung ist darauf zu achten, dass
+bei Nichtuebereinstimmung des Datentypes der Zielvariablen
+(Gleitpunkt bzw. ganze Zahl) und des Ergebnisses des Ausdruckes
+vor der Wertzuweisung eine Konvertierung erfolgt. Bei der Kon-
+vertierung in ganze Zahlen ist eine Fehlermeldung bei Bereichs-
+ueberlauf moeglich.
+ 
+Bsp.:
+ 
+  100 INPUT A
+  110 A2=A*A
+  120 A3=A2*A
+
+                        BASIC-T   Sprachbeschreibung  25
+ 
+ 
+  130 LET A4=A3*A
+  140 PRINT A,A2,A3,A4
+  200 ZK$='AAA'!!'BBB'
+  210 LET ZK2$=ZK$!!'CCC'
+  220 PRINT ZK$,SKIP,ZK2$
+ 
+Erfolgt die Benutzung einer numerischen Variablen innerhalb ei-
+nes Ausdrucks, ohne dass die Variable vorher auf der linken Sei-
+te einer Ergibtanweisung auftritt, dann ist ihr Wert voellig un-
+bestimmt. Es wird sich also fast in jedem Fall um einen Pro-
+grammfehler handeln. Es empfiehlt sich, zu Programmbeginn alle
+derartigen Variablen zu initialisieren.
+Bei der Zeichenkettenergibtanweisung besitzt BASIC-T noch eine
+sondere Eigenschaft. Die Laenge aller Zeichenketten wird dy-
+namisch bei jeder Zuweisung aktualisiert. Das ist eine Massnah-
+me, die zur Speicherplatzeinsparung beitraegt.
+ 
+Bsp.:
+ 
+  Anweisung                Wert              Laenge
+ 
+  Z1$='ABC'                ABC                 3
+  Z1$=Z1$!!'123'           ABC123              6
+  Z1$=Z1$!!Z1$             ABC123ABC123       12
+  Z1$=''                                       0
+ 
+Die vierte Anweisung des Beispiels dient dem Loeschen von Zei-
+chenketten. Diesen "leeren" Zustand besitzt auch eine Zeichen-
+kette, welcher noch kein Wert zugewiesen wurde.
+ 
+ 
+   5.5. Sprunganweisungen
+  ------------------------
+ 
+ 
+Bei allen bisherigen Beispielen wurden die Programmanweisungen
+entsprechend der Sortierung nach Zeilennummern einmalig abgear-
+beitet. Fuer viele Anwendungsfaelle muss diese sequentielle
+Folge, eventuell von bestimmten Bedingungen abhaengig, unterbro-
+chen werden. Dazu dienen die in diesen Abschnitt beschriebenen
+Sprunganweisungen.
+ 
+ 
+    5.5.1. Unbedingte Spruenge
+   ----------------------------
+ 
+ 
+   got_a::= GOTO spz
+ 
+mit:
+ 
+   spz::= zln | name
+ 
+Nach der Abarbeitung der GOTO-Anweisung wird der Programmlauf an
+der durch das Sprungziel (spz) bestimmten Stelle fortgesetzt.
+Im Standard-BASIC ist als Sprungziel nur die Angabe der Zeilen-
+nummer einer BASIC-Quellzeile erlaubt. Das erfordert schon bei
+der Programmerstellung eine konkrete Vergabe der Zeilennummern.
+
+                        BASIC-T   Sprachbeschreibung  26
+ 
+ 
+BASIC-T gestattet hier eine wesentlich uebersichtlichere Ar-
+beitsweise durch die Realisierung symbolischer Marken. Dabe
+darf eine Quellzeile unmittelbar nach der Zeilennummer mit einer
+symbolischen Marke versehen werden. Auf deren Namen kann dann
+vom gesamten Programm zugegriffen werden. Es versteht sich, dass
+es verboten ist, mehrere Zeilen durch gleichnamige Marken zu
+kennzeichnen.
+ 
+Bsp.:
+ 
+  NEW
+  100    PRINT 'ZEILE 100'
+  200    GOTO M1
+  300    PRINT 'ZEILE 300'
+  400    GOTO M2
+  500 M1:PRINT 'ZEILE 500'
+  600    GOTO 300
+  700 M2:PRINT 'ZEILE 700'
+  RUN
+  ZEILE 100
+  ZEILE 500
+  ZEILE 300
+  ZEILE 700
+  READY
+ 
+Bei der Ausfuehrung des Kommandos RUN erfolgt eine Ueberpruefung
+der benutzten Marken. Falls ein in der Sprunganweisung benutztes
+Ziel nicht definiert worden ist, erfolgt eine entsprechende Feh-
+lermeldung und mit dem Programmlauf wird nicht begonnen. Diese
+Arbeitsweise erspart den Programmierer Testzeit, da er sofort
+auf seinen Fehler hingewiesen wird und nicht erst zum Zeitpunkt
+der Abarbeitung der Sprunganweisung.
+ 
+ 
+   5.5.2. Bedingte Spruenge
+  --------------------------
+ 
+ 
+Zur Loesung eines Problems muessen meist entsprechend unter-
+schiedlicher Voraussetzungen verschiedene Anweisungsfolgen
+durchlaufen werden. Mittels der bedingten Sprunganweisung kann
+eine solche Verzweigung entsprechend des angebbaren Tests erfol-
+gen.
+ 
+             /           \          /     \           /     \
+            |    ausd     |        |  spz  |         |  spz  |
+  if_a::=IF< zaus vop zaus > THEN <         >[ ELSE <         >]
+            |ausd vop ausd|        |anw2;  |         |anw2;  |
+             \           /         ||___/..|         ||___/..|
+                                    \     /           \     /
+ 
+Als erstes soll der Testteil der Anweisung naeher untersucht
+werden. Es ist hier moeglich, nur einen numerischen Ausdruck an-
+zugeben. Dieser Ausdruck wird dann zur Laufzeit berechnet und
+mittels Vergleichsoperator <> mit dem Wert 0 verglichen.
+Weiterhin koennen sowohl zwei numerische als auch zwei Zeichen-
+kettenausdruecke mittels angegebenen Operator verglichen werden.
+ 
+
+                        BASIC-T   Sprachbeschreibung  27
+ 
+ 
+Entsprechend der durch den Test gewonnenen Aussage wird dann
+entweder der THEN-Zweig (bei erfuellter Testbedingung) oder der
+ELSE-Zweig (bei nicht erfuellter Testbedingung) durchlaufen. Da-
+runter ist zu verstehen, dass zu dem hinter dem zutreffenden
+Schluesselwort stehenden Sprungziel verzweigt wird, beziehungs-
+weise die dort stehende Anweisungsfolge (Anweisungen vom Typ 2)
+abgearbeitet wird. Die Anzahl der angebbaren Anweisungen ist
+nicht direkt begrenzt. Es wird nur gefordert, dass die gesamte
+Sprachkonstruktion auf einer einzigen Quellzeile Platz findet.
+Der ELSE-Zweig der Anweisung kann ersatzlos weggelassen werden,
+falls er vom Anwender nicht benoetigt wird. In diesem Fall wird
+die Programmbearbeitung mit der folgenden Zeile fortgesetzt.
+ 
+Im Standard-BASIC gab es bisher nur die Moeglichkeit der Ver-
+zweigung mittels THEN und einer Zeilennummer als Sprungziel.
+Durch die Aufnahme der sogenannten vollstaendigen Alternative
+mit dem ELSE-Zweig und die Angabe kompletter Anweisungsfolgen
+wurde aus der bisherigen bedingten Sprunganweisung ein lei-
+stungsfaehiges Ausdrucksmittel  von BASIC-T. Ein kurzes Beispiel
+soll dies demonstrieren.
+Es sind zwei Zahlen einzulesen, durch das Programm zu untersu-
+und auszugeben, ob die zweite Zahl kleiner, gleich oder groesser
+als die erste eingegebene Zahl war.
+ 
+Bsp:
+ 
+   Standard-BASIC
+   ..............
+ 
+  100 PRINT 'ZWEI ZAHLEN EINGEBEN'
+  110 INPUT X,Y
+  120 IF X=Y THEN 160
+  130 IF X<Y THEN 180
+  140 PRINT 'KLEINER'
+  150 GOTO 190
+  160 PRINT 'GLEICH'
+  170 GOTO 190
+  180 PRINT 'GROESSER'
+  190 PRINT 'ENDE'
+ 
+   BASIC-T
+   .......
+ 
+  100 INPUT 'ZWEI ZAHLEN EINGEBEN'X,Y
+  110 IF X=Y THEN PRINT 'GLEICH';GOTO EN
+  120 IF X<Y THEN PRINT 'GROESSER' ELSE PRINT 'KLEINER'
+  130 EN: PRINT 'ENDE'
+ 
+ 
+   5.5.3. Unterprogrammspruenge
+  ..............................
+ 
+ 
+Bei den bisherigen Sprunganweisungen war es dem BASIC nach Aus-
+fuehrung des Sprunges nicht mehr moeglich, den Ort des Sprungbe-
+ginnes festzustellen. Es erweist sich aber vielfach als erfor-
+derlich, bestimmte Befehlsfolgen im Programm oefter und an un-
+terschiedlichen Stellen gleichartig abzuarbeiten. Dazu besteht
+
+                        BASIC-T   Sprachbeschreibung  28
+ 
+ 
+die Moeglichkeit, solche Befehlsfolgen nur einmalig im Programm
+anzugeben, und sie dann beliebig oft und von verschiedenen Stel-
+len aufzurufen. Diese Befehlsfolgen nennt man Unterprogramme.
+Beim Sprung zu einem Unterprogramm ist es dem BASIC nun erfor-
+derlich, den Ort des Sprungbeginnes zu merken. Das Ende des Un-
+terprogrammes muss durch einen speziellen Befehl gekennzeichnet
+werden, um anschliessend wieder an die aufrufende Stelle zur-
+rueckzukehren.
+ 
+   gos_a::= GOSUB spz
+ 
+   ret_a::= RETURN
+ 
+Auch an dieser Stelle soll ein Beispiel wieder die Anwendung er-
+laeutern. In einem Unterprogramm wird eine Zahleneingabe gefor-
+dert und protokolliert. Deren mit der Variablen B multiplizier-
+ter Wert (beispielsweise mit einem Masstabsfaktor) wird in der
+Variablen A bereitgestellt. In einem Hauptprogramm wird das Un-
+terprogramm mehrmals aufgerufen und des Ergebnis jeweils ausge-
+geben.
+ 
+ Bsp.:
+ 
+  100 B=1
+  200 GOSUB UP
+  300 PRINT 'ZAHL:',A
+  400 B=10
+  500 GOSUB 10000
+  600 PRINT 'ZAHL * 10:',A
+  700 STOP
+10000 UP: INPUT 'EINGABE: 'A
+10010 PRINT A
+10020 A=A*B
+10030 RETURN
+ 
+Die Uebergabe von Parametern zwischen dem Haupt- und dem Unter-
+programm muss in Variablen erfolgen, die beiden Programmen be-
+kannt sein muessen. Man nennt solche Variablen auch globale
+Variable.
+Prinzipiell ist jede Anweisungsfolge, die mit einem "RETURN"
+abschliesst, als Unterprogramm aufrufbar, da Unterprogramme kei-
+nen definierten Eintrittspunkt besitzen. Gelangt die Programmbe-
+arbeitung zu einem RETURN, ohne dass zuvor ein GOSUB erfolgte,
+dann wird eine Fehlermeldung ausgegeben und der Programmlauf be-
+endet.
+Es ist moeglich, dass Unterprogramme selbst wieder Unterprogramme
+aufrufen. Die Schachtelungstiefe ist dabei nicht begrenzt! Auch
+der rekursive Aufruf ist erlaubt. Allerdings muss der Program-
+mierer dann fuer eine Abbruchbedingung des wiederholten Aufrufes
+sorgen. Ein Beispiel dafuer ist die Bildung der Fakultaet einer
+Zahl, die im folgenden als Unterprogramm beschrieben wird.Das
+Unterprogramm bildet B=A!
+ 
+ Bsp.:
+ 
+   1000 FK:IF A=0 THEN B=1; RETURN
+   1010    A=A-1
+   1020    GOSUB FK
+
+                        BASIC-T   Sprachbeschreibung  29
+ 
+ 
+   1030    A=A+1
+   1040    B=B*A
+   1050    RETURN
+ 
+ 
+Dieses Programm ruft sich je nach der Groesse der Eingabezahl
+selbst auf. Die Anzahl wird dabei durch die Eingabevariable A
+bestimmt, indem diese auf 0 zurueckgezaehlt wird. Fuer eine
+komplexe Anwendung des Programmes soll noch darauf hingewiesen
+werden, dass die Eingabevariable A auf Gueltigkeit geprueft
+( Ganzzahligkeit,positiv,kleiner als  34 )werden sollte, damit
+die Abbruchbedingung A=0 erfuellt werden kann und kein Zahlen-
+bereichsueberlauf auftritt.
+ 
+ 
+ 
+    5.5.4. Zielverteiler (ON-Anweisung)
+   .....................................
+ 
+ 
+Die IF-Anweisung gestattet nur die unterschiedliche Bearbeitung
+von 2 verschiedenen Programmzweigen. Die in diesem Abschnitt
+beschriebene ON-Anweisung kann entsprechend des Testergebnisses
+zu mehreren Programmstellen verzweigen.
+ 
+                      /    \
+                     | anw2 |
+   on_a::= ON ausd  < |----..>,
+                     |  spz |
+                      \    /
+                    |_________/......
+ 
+ 
+Die Anweisung wird gekennzeichnet durch das Schluesselwort ON,
+gefolgt von einem numerischen Ausdruck. Zur Laufzeit wird dieser
+Ausdruck berechnet und zu einer ganzen Zahl gerundet. Mit diesem
+ermittelten Wert wird eine Auswahl in der nachfolgend aufge-
+fuehrten Liste getroffen. Fuer Werte <=0 ist die Anweisung nicht
+definiert. Ergeben sich positive Werte, so wird bei 1 die erste
+Anweisungsfolge bearbeitet oder zum ersten Sprungziel verzweigt.
+Betraegt der Wert 2, dann erfolgt entsprechend die Bearbeitung
+der zweiten Anweisungsfolge bzw. Verzweigung zum zweiten Sprung-
+ziel.Ist der ermittelte Wert groesser als die Anzahl der Eintra-
+gungen in der Liste, dann erfolgt wiederum keine Bearbeitung.
+In beiden nicht definierten Bereichen gibt es keine Fehlermel-
+dungen!
+Zur Erlaeuterung dient wieder ein Beispiel, welches gleichzeitig
+den Einsparungseffekt gegenueber der IF-Anweisung verdeutlichen
+soll.
+ 
+Bsp.
+ 
+   100 ON A%+5% M1,B=7,GOSUB UP,GOTO M2
+ 
+Diese Anweisung ist gleichbedeutend mit:
+ 
+
+                        BASIC-T   Sprachbeschreibung  30
+ 
+ 
+   100 IF A%+5%<=0% THEN 150
+   110 IF A%+5%=1% THEN M1
+   120 IF A%+5%=2% THEN B=7; GOTO 150
+   130 IF A%+5%=3% THEN GOSUB UP; GOTO 150
+   140 IF A%+5%=4% THEN M2
+   150 .....
+ 
+ 
+Im folgenden Beispiel soll gezeigt werden, wie sich ein effek-
+tiver Einsatz fuer die ON-Anweisung im Zusammenhang mit der
+dynamischen Geraetevergabe ergibt.Die beiden Unterprogramme die-
+nen der Abfrage nach einem vom Nutzer zur Programmlaufzeit zu-
+weisbarem Ausgabegeraet bzw. der Einstellung auf eben diese Ge-
+raet.
+ 
+   GA:INPUT 'AUSG.-GERAET(LS,MB,DR,BS):'GA$;PRINT GA$
+      IF GA$='LS' THEN GA%=1%;RETURN
+      IF GA$='MB' THEN GA%=2%;RETURN
+      IF GA$='DR' THEN GA$=3%;RETURN
+      IF GA$='BS' THEN GA$=4%;RETURN ELSE GA
+ 
+   GZ:ON GA% ASGN DAO=PTT,ASGN DAO=MTW,ASGN DAO=LPR,ASGN DAO=SCR
+      RETURN
+ 
+Das Unterprogramm GA fragt den Bediener nach einem Ausgabegeraet,
+protokolliert die Eingabe und testet sie auf Gueltigkeit.Im
+gueltigen Fall wird das Testergebnis in der Variablen GA% ver-
+merkt. Im ungueltigen Fall erfolgt eine neue Anforderung.
+Das Unterprogramm GZ uebernimmt die eigentliche Zuweisung. Es
+kann vor jeder Ausgabe erforderlichenfalls aufgerufen werden
+und arbeitet je nach dem Wert von GA% die gewuenschte ASGN-An-
+weisung ab.
+Die beiden Beispiele wurden absichtlich ohne Zeilennummerierung
+angegeben, da diese erst zum eigentlichen Einbinden in das
+uebergeordnete Programm vergeben werden. Der Aufruf erfolgt
+ueber den symbolischen Namen des Unterprogrammes und zur Ueber-
+mittlung der Parameter dient die globale Variable GA%.
+Eine solche vorteilhafte Anwendung wurde erst durch den Einsatz
+der symbolischen Marken ermoeglicht.
+ 
+ 
+   5.6. Iterative Zyklen
+  -----------------------
+ 
+ 
+Vielfach verlangt es die Aufgabenstellung, dass ein Teil oder
+das gesamte Programm mehrmals hintereinander ausgefuehrt werden.
+Ein solcher sogenannter Zyklus laesst sich beispielsweise durch
+eine bedingte Sprunganweisung realisieren.
+Das folgende Beispiel zeigt dazu ein Programm, welches die Zah-
+len von 1 bis 100 addiert.
+ 
+ Bsp.:
+  100  SU=0
+  200  I=1
+  300  SU=SU+I
+  400  I=I+1
+  500  IF I<=100 THEN 300
+ 
+
+                        BASIC-T   Sprachbeschreibung  31
+ 
+ 
+Dazu wird in dem Programm eine Variable (I) mitgefuehrt, in der
+die Zaehlung erfolgt. Entsprechend dem erreichten Zaehlerstand
+wird das Programm zyklisch wiederholt.
+Solche Programmorganisation mit einem Zaehler (Laufvariable ge-
+nannt) ist sehr typisch. Deshalb wurde speziell dafuer ein be-
+sonderes Sprachelement geschaffen, welches aus einer Anweisung
+fuer den Zyklenbeginn und einer Anweisung fuer das Ende der
+Programmschleife besteht.
+ 
+                /   \
+               | ngv |
+  for_a::=FOR <       > = ausd TO ausd [ STEP ausd ]
+               | niv |
+                \   /
+ 
+ 
+                  /   \
+                 | ngv |
+  next_a::=NEXT <       >
+                 | niv |
+		  \   /
+
+In der FOR-Anweisung wird eine Laufvariable definiert, die so-
+wohl vom Typ Gleitpunkt als auch ganzzahlig sein darf. Diese
+Laufvariable wird zum Zyklenbeginn auf den Wert des Ausdruckes
+hinter dem Glei#hheitszeichen gesetzt. In jedem Zyklus wird der
+Wert der Laufvariablen um den Wert des Ausdruckes hinter dem
+Schluesselwort STEP erhoeht und mit dem Ausdruck hinter TO ver-
+glichen. Man nennt diese drei Ausdruecke im allgemeinen "Anfangs-
+wert", "Schrittweite" und "Endwert". Fehlt die Angabe "STEP" ,
+dann wird als Standard die Schrittweite 1 angenommen.
+Falls der vom Programmierer geforderte Endwert noch nicht er-
+reicht ist, dann wird der Zyklus ab der auf die FOR-Anweisung
+folgenden BASIC-Zeile erneut abgearbeitet. Ist die Endebedingung
+dagegen erfuellt, dann wird mit der auf die NEXT-Anweisung fol-
+genden Zeile fortgesetzt.
+Das einleitend angefuehrte Beispiel kann damit folgendermassen
+einfacher gestaltet werden:
+ 
+ Bsp.:
+ 
+  100 SU=0
+  200 FOR I=1 TO 100
+  300   SU=SU+I
+  400 NEXT I
+ 
+Zur FOR-NEXT-Schleife als einem sehr komplexen Ausdrucksmittel
+gibt es noch eine ganze Reihe von interessanten Besonderheiten
+zu beachten.
+ 
+-FOR-NEXT-Schleifen lassen sich beliebig oft ineinander schach-
+ teln. Dabei muss jede innere Schleife vollstaendig in der
+ aeusseren Schleife enthalten sein. Alle Ueberlappungen sind
+ verboten.
+ 
+
+                        BASIC-T   Sprachbeschreibung  32
+ 
+ 
+  Bsp.:
+   erlaubt                      verboten
+ 
+   FOR I=1 TO 10                FOR I=1 TO 10
+   FOR J=1 TO 20                FOR J=1 TO 20
+   ...                          ...
+   NEXT J                       NEXT I
+   NEXT I                       NEXT J
+ 
+-Der Einsprung in eine FOR-NEXT-Schleife ist verboten und fuehrt
+ zu undefinierbaren Folgefehlern.
+ 
+-In Erweiterung zum Standard-BASIC ist es moeglich geworden,
+ Schleifen vor Erreichen des Endwertes durch einen Sprungbefehl
+ zu verlassen.
+ 
+-Da BASIC-T die Ausdruecke fuer Schrittweite und Endwert bei je-
+ den Durchlauf neu berechnet, ist es gestattet, deren Ergebnisse
+ durch die Veraenderung von Variablen waehrend der Schleife zu
+ modifizieren. Damit lassen sich beispielsweise Schrittweiten
+ entsprechend einer logarithmischen oder geometrische Reihe sehr
+ einfach erreichen.
+ Allerdings soll der wenig erfahrene Programmierer vor derarti-
+ gen Techniken gewarnt werden, da sie bei fehlerhafter Anwendung
+ zu unuebersehbaren Folgeerscheinungen fuehren koennen.
+ 
+-Wie auch bei Sprungzielen wird bei den FOR-NEXT-Schleifen die
+ exakte Anwendung bei Ausfuehrung des RUN-Kommandos sofort
+ ueberprueft. Damit werden Schachtelungsfehler noch vor der Pro-
+ grammausfuerung erkannt und dem Programmierer Testzeit gespart.
+ 
+-Der Programmierer kann durch den Einsatz von ganzen Zahlen ge-
+ rade bei der Zyklenorganisation mit der Schrittweite "1" die
+ Laufzeiten gegenueber dem Einsatz von Gleitpunktzahlen merk-
+ lich senken (um ca. 30%).
+ 
+-Beim erstmaligen Abarbeiten der FOR-Anweisung wird getestet, ob
+ der Endwert durch laufende Addition der Schrittweite auf den
+ Anfangswert ueberhaupt erreicht werden kann. Falls dies nicht
+ der Fall ist, wird der Zyklus uebersprungen und sofort mit der
+ auf die NEXT-Anweisung folgenden Zeile weitergearbeitet.
+ 
+  Bsp.:
+   FOR I=1 TO 5 STEP -1
+     ...
+     ... Zyklus wird nicht abgearbeitet
+     ...
+   NEXT I
+ 
+ 
+Abschliessend werden noch 2 Beispiele erlautert, die die Anwen-
+dung der FOR-NEXT-Schleifen demonstrieren. Im ersten Beispiel
+wird eine quadratische Matrix M% (ganzzahliger Typ) mit MS% Spal-
+ten und Zeilen als Einheitsmatrix geladen.
+ 
+
+                        BASIC-T   Sprachbeschreibung  33
+ 
+ 
+ Bsp.:
+   FOR I%=1% TO MS%
+     FOR J%=1% TO MS%
+       IF I%=J% THEN M%(I%,J%)=1% ELSE M%(I%,J%)=0%
+     NEXT J%
+   NEXT I%
+ 
+Im zweiten Beispiel werden die beiden Matrizen A (L mal M-Matrix)
+und B (M mal N-Matrix) zur Matrix C (L mal N-Matrix) multipli-
+ziert.
+ 
+ Bsp.:
+  FOR I%=1% TO L
+    FOR J%=1% TO N
+      X=0
+      FOR K%=1% TO M
+        X=X+A(I%,K%)*B(K%,J%)
+      NEXT K%
+      C(I%,J%)=X
+    NEXT J%
+  NEXT I%
+ 
+ 
+ 
+   5.7. Datenanweisungen
+  _______________________
+ 
+ 
+BASIC-T gestattet dem Anwender die Verarbeitung von durch ihn
+selbst festzulegenden Daten ohne auf ein externes Medium zu-
+rueckzugreifen. Dazu koennen diese Daten im Programm definiert
+und durch das Programm gelesen werden. Die Daten werden dabei
+alle im Speicher des Rechners abgelegt. Beim Kommando RUN wird
+ein Zeiger auf den Anfang dieser Datenliste gestellt und durch
+jedes Lesen um ein Element weitergerueckt. Eine weitere Anwei-
+sung gestattet den direkten Zugriff auf diesen Zeiger.
+ 
+ 
+   data_a::= DATA  dael,
+                  |____/....
+ 
+   read_a::=READ { ngf | nif | zkf }
+ 
+   rest_a:: RESTORE [ spz ]
+ 
+   mit
+ 
+   dael::= { ngk | nik | zkk | ngv | niv | zkv }
+ 
+ 
+Bsp.:
+ 
+   DATA 'MONTAG','DIENSTAG','MITTWOCH','DONNERSTAG'
+   DATA 'FREITAG','SONNABEND','SONNTAG'
+     .....
+   FOR I%=1% TO 7%
+     READ WT$(I%)
+   NEXT I%
+ 
+
+                        BASIC-T   Sprachbeschreibung  34
+ 
+ 
+Die FOR-NEXT-Schleife dient dem Einlesen der Zeichenketten fuer
+die Wochentage in einen Vektor WT$. Der Uebergang von einer
+DATA-Zeile zur folgenden geschieht intern im BASIC-T-System ohne
+programmtechnische Massnahmen.
+ 
+Durch die RESTORE-Anweisung kann der Zeiger, der auf das
+naechste zu lesende Datenelement zeigt, veraendert werden.
+Als Zeigerwert ist der Beginn einer jeden DATA-Zeile ueber die
+Zeilennummer oder eine symbolische Marke angebbar. Es ist nicht
+moeglich , den Zeiger auf ein Element in mitten einer DATA-Zeile
+zu stellen.
+DATA-Anweisungen duerfen an jeder beliebigen Stelle im Programm
+angegeben werden. Diese Zeilen werden bei der Bearbeitung ueber-
+gangen.
+ 
+Bsp.
+ 
+  NEW
+  100 DATA 1,2
+  200 READ A%;PRINT A%
+  300 DATA 3,4
+  400 RESTORE 300
+  500 READ A%;PRINT A%
+  600 RESTORE DA
+  700 READ A%;PRINT A%
+  800 RESTORE
+  900 FOR I%=1% TO 5%
+ 1000   READ A%;PRINT A%,,
+ 1100 NEXT I%
+ 1200 DATA 5,6,7
+ 
+  RUN
+ 
+        1
+        3
+        5
+        1      2      3      4      5
+  READY
+ 
+ 
+Bei der Abarbeitung einer READ-Anweisung gibt es zwei ver-
+schiedene Fehlerursachen
+ 
+-Nichtuebereinstimmung der Datentypen numerisch-Zeichenkette
+ zwischen aktuellem Datenelement und der durch READ bestimmten
+ Variablen.
+ 
+-Ausfuehrung einer READ-Anweisung obwohl die vorhandene Daten-
+ liste bereits vollstaendig abgearbeitet ist, bzw. obwohl keine
+ Datenliste definiert ist.
+ 
+Bei beiden Fehlern wird der Programmlauf mit der entsprechenden
+Meldung abgebrochen.
+ 
+
+                        BASIC-T   Sprachbeschreibung  35
+ 
+ 
+ 
+    5.8. Dimensionsanweisung
+  ____________________________
+ 
+ 
+Alle in einem BASIC-T System benutzten Felder muessen vor ihrer
+ersten Benutzung definiert werden. Diese Definition verlangt
+erstens den Typ der Elemente, der durch den Namen des Feldes
+angegeben wird. Die Regeln dazu entsprechen den Typ-Kennzeichen
+der Variablen. Die zugelassenen Typen fuer Felder sind:
+ 
+   - ohne Typkennzeichen : Gleitpunktzahl
+   - % (Prozentzeichen)  : ganze Zahlen
+   - $ (Waehrungszeichen): Zeichenketten
+ 
+Zweitens muessen die Anzahl der Dimensionen und die Anzahl der
+Elemente bei der Definition angegeben werden.
+Diese Angaben sind fuer das Verarbeitungssystem unbedingt er-
+forderlich, um die Speichervergabe optimal zu gestalten und die
+Adressen der einzelnen Feldelemente zu errechnen.
+ 
+                 / ngv \
+                |       |
+  dim_a::= DIM <   niv   > ( ausd [, ausd] )
+                |       |
+                 \ zkv /
+ 
+Durch die Anzahl der Ausdruecke wird die Anzahl der Dimensionen
+des Feldes festgelegt und der Wert der Ausdruecke, der bei der
+Abarbeitung berechnet wird, ergibt die Anzahl der Elemente in
+dieser Dimension.
+ 
+ Bsp.:
+   DIM VE(5)            Vektor aus 5 Gleitpunktelementen
+   DIM MA%(10%,7)       Matrix aus ganzen Zahlen mit 10 Zeilen
+                        und 7 Spalten
+   DIM ST$(I,J-1)       Matrix von Zeichenketten mit I Zeilen
+                        und J-1 Spalten
+ 
+ 
+Die Felder haben in BASIC-T folgende Eigenschaften:
+ 
+-Werden die Elemente der Felder angesprochen, dann muessen die
+ Indizes zwischen 1 und dem bei der Definition festgelegtem Wert
+ liegen. Anderenfalls wird der Programmlauf mit einer Fehlermel-
+ dung abgebrochen. Ebenso erfolgt eine Fehlermeldung, falls auf
+ Elemente eines nicht definierten Feldes zugegriffen wird, oder
+ die Anzahl der Dimensionen nicht uebereinstimmt.
+ 
+-Da die Dimensionsanweisung an keine feste Stelle des Program-
+ mes gebunden ist, koennen Felder mitten in Programmlauf defi-
+ niert und dynamisch veraendert werden. So ist es moeglich, die
+ Anzahl der Feldelemente durch den Bediener oder einen externen
+ Datentraeger einzugeben und die Felder je nach Erfordernis zu
+ dimensionieren, um den Speicherplatz optimal auszunutzen.
+ Eine besondere Anweisung stellt
+ 
+   DIM name(0,0)
+ 
+
+                        BASIC-T   Sprachbeschreibung  36
+ 
+ 
+ dar, die dazu dient, ein bisher benutztes Feld wieder freizuge-
+ ben. Auch diese Massnahme dient der besseren Speicherplatzaus-
+ nutzung.
+ 
+-Nach der Dimensionsanweisung sind die Werte von numerischen
+ Elementen undefiniert. Zeichenkettenfelder sind nach der Defi-
+ nition mit "leeren" Zeichenketten initialisiert.
+ 
+Im abschliessenden Beispiel werden vom Bediener die Dimensionen
+fuer eine Matrix abgefragt und diese Matrix dann mit Zahlen ini-
+tialisiert, die in der Zehnerstelle die Nummer der Zeile und in
+der Einerstelle die Nummer der Spalte enthalten. Anschliessend
+wird diese Matrix ueber den Bildschirm protokolliert.
+ 
+ Bsp.:
+   NEW
+   100 INPUT 'Anzahl Spalten: 'MS%;PRINT MS%
+   110 IF MS%<2% THEN 100
+   120 IF MS%>9% THEN 100
+   130 INPUT 'Anzahl Zeilen : 'MZ%;PRINT MZ%
+   140 IF MZ%<2% THEN 130
+   150 IF MZ%>9% THEN 130
+   160 DIM MA%(MZ%,MS%)
+   170 FOR Z%=1% TO MZ%
+   180  FOR S%=1% TO MS%
+   190   MA%(Z%,S%)=Z%*10%+S%
+   200  NEXT S%
+   210 NEXT Z%
+   220 FOR Z%=1% TO MZ%
+   230  FOR S%=1% TO MS%
+   240   PRINT FIX 4:0,MA%(Z%,S%),
+   250  NEXT Z%
+   260  PRINT
+   270 NEXT Z%
+ 
+   RUN
+   Anzahl Spalten:    20
+   Anzahl Spalten:     5
+   Anzahl Zeilen :     1
+   Anzahl Zeilen :     4
+     11  12  13  14  15
+     21  22  23  24  25
+     31  32  33  34  35
+     41  42  43  44  45
+   READY
+ 
+Besondere Beachtung verdient dabei die Zeile 240 mit dem Format-
+steuerbefehl in der PRINT-Anweisung und deren nachgestelltem
+Komma, um den Zeilenvorschub innerhalb einer Matrixzeile zu ver-
+hindern, und die Zeile 260, die diesen Vorschub dann realisiert.
+ 
+ 
+   5.9. Funktionsdefinition
+  --------------------------
+ 
+ 
+Wird die Ermittlung numerischer oder Zeichenkettenausdruecke
+innerhalb eines Programmes oefter und an unterschiedlichen Stel-
+
+                        BASIC-T   Sprachbeschreibung  37
+ 
+ 
+len benoetigt, so kann man die bereits beschriebenen Unterpro-
+gramme benutzen. In einem Beispiel soll dies fuer die Errechnung
+des Ausdruckes   (X+1)/(X-1)   gezeigt werden.
+ 
+  F1: Y=(X+1)/(X-1)
+      RETURN
+ 
+In einem Hauptprogramm soll diese Funktion fuer den Wertebereich
+von -0.5 bis +0.5 ausgegeben werden.
+ 
+  HP: FOR X -0.5 TO 0.5 STEP 0.1
+      PRINT X,
+      GOSUB F1
+      PRINT Y
+      NEXT X
+ 
+Man erkennt, dass das Argument der zu bildenden Funktion stets
+in der Variablen X bereitgestellt werden muss, und das Ergebnis
+in der Variablen Y uebergeben wird. X und Y haben den Charakter
+von globalen Variablen. Diese feste Bindung an die vom Unter-
+programm vorgegebenen Variablen stellt eine starke Einschraen-
+kung dar, da oft die Werte erst durch zusaetzliche Ergibtanwei-
+sungen bereitgestellt bzw. verarbeitet werden muessen.
+Deshalb wird fuer BASIC eine einfachere Darstellung fuer die Er-
+mittlung von numerischen Ausdruecken mit einer Eingangsvariab-
+len gewaehlt.
+In einer Definitionsanweisung der Form:
+ 
+                         /   \
+                        | niv |
+   def_a::= DEF FNname(<       >) = ausd
+                        | ngv |
+                         \   /
+ 
+kann eine ganze Ausdrucksfolge zusammengefasst werden und ist
+dann unter dem vergebenen Namen wie eine Funktion aufrufbar. Am
+deutlichsten wird dies wieder an einem Beispiel. Die Aufgaben-
+stellung entspricht dabei der des einleitenden Beispiels.
+ 
+Bsp.:
+   DEF FNF1(Z)=(Z+1)/(Z-1)
+   ...
+   FOR I=-0.5 TO 0.5 STEP 0.1
+     PRINT X,FNF1(X)
+   NEXT X
+ 
+Im Definitionsteil enthaelt die Funktionsprozedur:
+ 
+-Ihren Namen F1
+ 
+-Die Zuweisung einer lokalen Variable, die zur Berechnung des
+ Ausdruckes benoetigt wird und zugleich den Typ der Funktion
+ (Ganzzahlig oder Gleitpunkt) angibt. Diese Variable hat nur
+ innerhalb dieser einen Zeile ihre Bedeutung. Im uebrigen Pro-
+ gramm darf eine gleichnamige Variable benutzt werden, die durch
+ die Ausfuehrung der Anweisung keine (!) Veraenderung erfaehrt.
+ 
+
+                        BASIC-T   Sprachbeschreibung  38
+ 
+ 
+-Die eigentliche Ausdrucksanweisung
+ 
+Diese so definierte Funktion kann ueber ihren Namen und ein in
+Klammern angegebenes Argument aufgerufen werden. An jede Stelle
+in der Funktionsprozedur, an der die lokale Variable auftritt,
+wird der vorher ermittelte Wert des Argumentes eingesetzt.
+Dieses Ausdrucksmittel Funktionsprozedur laesst sich in BASIC-
+Programmen sehr effektiv einsetzen. Hauptanwendung ist die Defi-
+nition der in BASIC nicht enthaltenen Funktionen (siehe Abschn.
+6). So laesst sich die in BASIC nicht vorhandene Funktion 'Ar-
+cussinus' mittels einer Funktionsprozedur definieren und ist da-
+nach wie eine vorhandene Standardfunktion zu benutzen.
+ 
+Bsp.:
+ 
+   DEF FNAS(X)=ATN(X/SQR(1-X*X))
+ 
+Der Aufruf von Funktionen ist im Abschnitt 'Funktionen' aus-
+fuehrlich erlaeutert.
+ 
+ 
+ 
+    5.10. Sonstige Anweisungen
+   ----------------------------
+ 
+ 
+Bei der Sprachimplementierung standen Forderungen der Anwender
+nach einer Zugriffsmoeglichkeit auf die spezielle Hardware des
+Rechners. Eigentlich steht solche 'maschinennahe Programmierung'
+etwas im Gegensatz zu einer problemorientierten Sprache.
+Aber gerade in der Mikrorechentechnik muss man da einige Zuge-
+staendnisse machen. Zur Loesung von Problemen der Prozesssteu-
+erung laesst es sich einfach nicht umgehen auf Speicherplaetze
+zuzugreifen, E/A-Leitungen zu bedienen und in Maschinensprache
+geschriebene zeitoptimierte Programme aufzurufen. Derartige Pro-
+gramme werden nicht rechnerunabhaengig sein. Sie gestatten es
+aber, auch in der Prozesssteuerung auf eine problemorientierte
+Sprache zurueckzugreifen, um die Programme in kuerzerer Zeit zu
+erstellen.
+ 
+ 
+            /    END    ausd         \
+           |                          |
+           |   / POKE \               |
+           |  |        |              |
+  spz_a::=<  <   DOKE   > ausd , ausd  >
+           |  |        |              |
+           |   \ OUT  /               |
+           |                          |
+            \    CALL   ausd         /
+ 
+ 
+Bedeutung:
+ 
+END     Der dem BASIC-T verfuegbare Speicherplatz wird auf die
+        durch den Wert des Ausdruckes bestimmte Endadresse fest-
+        gelegt. BASIC-T ueberprueft bis dorthin auf das Vorhan-
+        densein von RAM, bzw. bei Verkleinerungen auf eine Un-
+        terschreitung des bereits belegten Bereiches. In beiden
+
+                        BASIC-T   Sprachbeschreibung  39
+ 
+ 
+        Fehlerfaellen erfolgt eine Meldung.
+        Diese Anweisung dient beispielsweise dem dynamischen
+        Verkleinern des Speichers, um hinter BASIC-T noch Anwen-
+        dermaschinenprogramme unterbringen zu koennen.
+ 
+POKE    Diese beiden Anweisungen dienen den Schreiben auf den
+DOKE    Speicher des Rechners. Der erste Operand bestimmt dabei
+        die Adresse und der zweite Operand enthaelt den zu
+        schreibenden Wert.Waehrend POKE nur ein Byte eintraegt,
+        belegt die Anweisung DOKE zwei Speicherbytes. Die Ein-
+        tragung erfolgt dabei in der Mikrorechentechnik ueb-
+        lichen Darstellung.
+ 
+        Bsp.:
+ 
+           POKE H'1234,H'55               1234H=    55
+ 
+           DOKE H'1234,H'55               1234H=    55
+                                          1235H=    00
+ 
+           POKE H'1234,H'5678             1234H=    78
+ 
+           DOKE H'1234,H'5678             1234H=    78
+                                          1235H=    56
+ 
+ 
+OUT     Wird benutzt um Daten zu einem Tor auszugeben.
+        Der 1. Operand gibt die Toradresse an, der zweite
+        Operand entsprechend die Ausgabedaten. Beide Operanden
+        werden nur in einer Breite von 8 Bit verarbeitet.
+ 
+CALL    Durch CALL wird ein in Maschinencode geschriebenes Pro-
+        gramm gestartet. Dieses Programm darf saemtliche Re-
+        gister ausser dem SP und den Stackeintragungen ver-
+        aendern. Abgeschlossen muss das Programm durch den Be-
+        fehl RET (Code=0C9H) werden. Danach wird die Steuerung
+        an BASIC-T zurueckgegeben.
+ 
+ 
+Diese Befehle geben dem Programmierer umfangreiche Moeglich-
+keiten fuer die Prozesssteuerung. In einem Beispiel wird gezeigt
+wie ein XY-Schreiber, der zeitkritische Forderungen stellt,durch
+ein BASIC-T-Programm ueber Aufruf eines Maschinenprogramms
+realisiert. BASIC-T stellt die Koordinaten in den Variablen X
+und Y bereit. Das Unterprogramm XY speichert diese Werte ab und
+ruft ein Maschinenprogramm auf, welches die Position anfaehrt.
+ 
+Bsp.
+   XY:DOKE XK%,X
+      DOKE YK%,Y
+      CALL XY%
+      RETURN
+ 
+Die Variablen XK% (X-Koordinate), YK% (Y-Koordinate) und XY%
+(Startadresse der Steuerroutine fuer X-Y-Schreiber) muessen zu
+Programmbeginn nur noch mit den entsprechenden Speicheradressen
+geladen werden.
+
+
+                        BASIC-T   Sprachbeschreibung  40
+
+
+Bsp. (fuer BASIC-T auf K8912)
+
+    OUT:
+    ----
+    100 A=H'10
+    110 OUT H'E4,A:#     Ausgabe auf Leuchtdioden am K8912
+    120 FOR I=1 TO 500:# Zeitschleife
+    130 NEXT I
+    140 A=A+A:#          Linksverschiebung
+    150 IF A>H'80 THEN 100 ELSE 110
+
+An den Leuchtdioden ist das Durchschieben einer "1" zu sehen.
+
+    CALL:
+    -----
+    100 PRINT'TEST VON CALL'
+    110 FOR I=1 TO 13
+    120 CALL H'49C:#     UP gibt ein "-" aus.
+    130 NEXT I
+    140 STOP
+
+Der ausgegebene Text wird mit "-" unterstrichen.
+
+    PEEK,POKE
+    ---------
+    100 PRINT'TEST VON PEEK UND POKE'
+    110 A=PEEK (H'DF9):# Statuszelle des BS, die den CU beeinflusst.
+    120 IF A=H'80 THEN A=0 ELSE A=H'80
+    130 POKE H'DF),A
+    140 FOR I=1 TO 100
+    150 NEXT I
+    160 GOTO 100
+
+Unter jeder zweiten Zeile des ausgegebenen Textes bleibt der
+Cursor stehen.
+
+    DEEK,DOKE
+    ---------
+    100 PRINT'TEST VON DEEK UND DOKE'
+    110 A=DEEK(H'DF5):#  Statuszelle die Rollbild beeinflusst.
+    120 A=A+80:#         1 BS-Zeile = 80 Zeichen
+    130 IF A>=-19000 THEN A=-20480
+    140 DOKE H'DF5,A
+    150 PRINT'**********************'
+    160 FOR I=1 TO 50
+    170 NEXT I
+    180 GOTO 100
+
+Es ist zu erkennen, dass nach jedem Durchlauf des Programms
+eine Zeile mehr vom Rollbild ausgeschlossen wird. Beim
+Erreichen der 17. Zeile wird wieder das gesamte Bild freigegeben.
+
+                        BASIC-T   Sprachbeschreibung  41
+ 
+ 
+Abschliessend zu diesem Problem soll noch bemerkt werden, dass
+es fuer die Befehle POKE,DOKE und OUT auch die entsprechenden
+"Gegenteile" gibt. Diese haben jedoch die Form von Funktionen
+und werden im Abschnitt 6 behandelt.
+ 
+ 
+Zur Komplettierung noch einige weitere Anweisungen:
+ 
+   ouc_a::=OUTCHAR  ausd
+ 
+Fuehrt zur Ausgabe eines einzelnen Zeichens ueber die Datei DAO.
+Dazu wird der angegebene Ausdruck errechnet und als ein Byte
+uebermittelt. Damit ist es beispielsweise moeglich, Steuer-
+zeichen oder andere, im ASCII-Satz nicht vorkommende Zeichen
+auszugeben. Der Einsatz sollte mit dem Systemprogrammierer, der
+die Geraetetreiber implementiert hat, abgesprochen werden, um
+Fehlfunktionen auszuschliessen.
+ 
+ 
+   st_a::=STOP|END
+ 
+Die STOP-Anweisung beendet den Programmlauf und fuehrt zur Mel-
+dung des BASIC-T-Systems. Die END-Anweisung (ohne Operand!)
+darf nur am physischen Ende des Programms auftreten. Zur Abar-
+beitung wird die END-Anweisung nicht benoetigt, da BASIC-T das
+Programmende an der hoechsten vorkommenden Zeilennummer erkennt.
+Fuer die externe Speicherung ist END zur Kennzeichnung aller-
+dings erforderlich. Beim SAVE-Kommando (siehe Abschnitt 9) wird
+eine END-Anweisung automatisch generiert. Bei LOAD muss der Da-
+tentraeger entsprechend abgeschlossen sein.
+ 
+ 
+    5.11. Kommentaranweisung
+   --------------------------
+ 
+ 
+Zur uebersichtlichen und leicht verstaendlichen Dokumentation
+ist es in BASIC erlaubt, zusaetzliche kommentierende Textketten
+ohne eigentliche programmtechnische Aufgabe mit aufzunehmen.
+Solche Kommentarzeilen muessen durch das Schluesselwort REM oder
+das Sonderzeichen # (Doppelkreuz) gekennzeichnet werden.
+ 
+              /   \
+             | REM |
+   kom_a::= <       > zeichen
+             |  #  |
+              \   /
+ 
+Im Anschluss an das Schluesselwort sind alle Zeichen aus dem
+Zeichensatz des Rechers erlaubt. Die Kommentarzeile wird durch
+das Zeilenende abgeschlossen.
+Bei der Programmbearbeitung werden Kommentarzeilen uebergangen,
+ohne dass Rechenzeit dafuer benoetigt wird. Zu beachten ist aber
+der zusaetzliche Speicheraufwand, da der Kommentar den Speicher
+programmtechnisch "sinnlos" belegt und fuer den eigentlichen
+Programmlauf blockiert. Man soolte also mit den Kommentaren
+sparsam umgehen.
+
+                        BASIC-T   Sprachbeschreibung  42
+
+
+
+Zum Abschluss des Abschnittes Anweisungen einmal ein komplettes
+Anwenderprogramm, welches eine Additionstabelle fuer Hexadezi-
+malzahlen erstellt. Diese ist ein Hilfsmittel gerade fuer Mikro-
+rechneranwender, die viele Berechnungen in dem ungewohnten Zah-
+lensystem durchzufuehren haben.
+ 
+ 
+   10 ##########
+   20 #
+   30 #   HEX-ADDITIONSTABELLE
+   40 #
+   50 ##########
+   90 ASGN DAI=KEY;ASGN DAO=LPR
+  100 PRINT '     ADDITIONSTABELLE FUER HEXA-ZIFFERN'
+  200 PRINT '     =================================='
+  300 PRINT
+  400 PRINT '     Dez',
+  500 FOR I=1 TO 16
+  600  PRINT FIX 3:0,I-1,
+  700 NEXT I
+  800 PRINT
+  900 PRINT 'Dez  Hex',
+ 1000 FOR I=0 TO 15
+ 1100  PRINT HEX 3:1,I,
+ 1200 NEXT I
+ 1300 PRINT
+ 1400 FOR J=0 TO 15
+ 1500  PRINT FIX 3:0,J,HEX 5:1,J,' ',
+ 1600  FOR I=0 TO 15
+ 1700   PRINT HEX 3:2,I+J,
+ 1800  NEXT I
+ 1900  PRINT
+ 2000 NEXT J
+RUN
+     ADDITIONSTABELLE FUER HEXA-ZIFFERN
+     ==================================
+ 
+     Dez  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
+Dez  Hex  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+  0    0  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
+  1    1  01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10
+  2    2  02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11
+  3    3  03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12
+  4    4  04 05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13
+  5    5  05 06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14
+  6    6  06 07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15
+  7    7  07 08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16
+  8    8  08 09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17
+  9    9  09 0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17 18
+ 10    A  0A 0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17 18 19
+ 11    B  0B 0C 0D 0E 0F 10 11 12 13 14 15 16 17 18 19 1A
+ 12    C  0C 0D 0E 0F 10 11 12 13 14 15 16 17 18 19 1A 1B
+ 13    D  0D 0E 0F 10 11 12 13 14 15 16 17 18 19 1A 1B 1C
+ 14    E  0E 0F 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D
+ 15    F  0F 10 11 12 13 14 15 16 17 18 19 1A 1B 1C 1D 1E
+ 
+READY
+
+                        BASIC-T   Sprachbeschreibung  43
+
+
+
+
+   6. Funktionen
+   =============
+ 
+ 
+Die bisher behandelten Anweisungen hatten zur Folge, dass bei
+ihrer Abarbeitung im BASIC-T-System bestimmte Aktionen durch-
+gefuehrt wurden. Jede Anweisung war in sich abgeschlossen und
+und einzeln anwendbar. Darueber hinaus beinhaltet BASIC eine
+Reihe von Funktionen. Diese Funktionen sind stets Teil einer
+umfassenderen Anweisung und stellen Werte fuer die weitere Be-
+arbeitung bereit. Entsprechend der Art der bereitgestellten
+Werte unterscheidet BASIC-T auch hier zwischen numerischen
+und Zeichenkettenfunktionen.
+ 
+ 
+   6.1. Numerische Funktionen
+   --------------------------
+ 
+           / nfk1 \
+          |  nfk2  |
+  nfk::= <          >
+          |  nfk3  |
+           \ nfk4 /
+ 
+Zur Vereinfachung der numerischen Berechnungen auf allen
+mathematisch-technischen Gebieten steltt BASIC-T ein breites
+Sortiment an Standardfunktionen bereit. Es umfasst alle not-
+wendigen logarithmischen und Winkelfunktionen.
+ 
+ 
+          /ABS   \
+         | ATN    |
+         | COS    |
+         | EXP    |
+         | FNname |
+ nfk1::=<  INT     > (ausd)
+         | LOG    |
+         | SGN    |
+         | SIN    |
+         | SQR    |
+          \TAN   /
+ 
+Die Schluesselworte sind dabei Abkuerzungen fuer folgende
+Funktionen:
+ 
+ABS(x)     liefert den Absolutwert des Argumentes x
+ 
+ATN(x)     berechnet den Arcustangens von x
+ 
+COS(x)     Cosinus von x
+ 
+EXP(x)     Wert der Exponentialfunktion zur Basis e
+ 
+FNname(x)  Aufruf der durch den Nutzer definierten Funk-
+           tion mit dem Namen FNname mit Uebergabe des Wer-
+           tes von x
+
+                        BASIC-T   Sprachbeschreibung  44
+
+
+INT(x)     ergibt die groesste ganze Zahl, die kleiner als x ist
+           also  INT(2,7)=2
+           aber  INT(-2,7)=-3!
+ 
+LOG(x)     natuerlicher Logarithmus von x
+ 
+SGN(x)     bestimmt das Vorzeichen des Wertes x
+           dabei  SGN(<0)=-1
+                  SGN(0) =0
+                  SGN(>0)=+1
+ 
+SIN(x)     ermittelt den Sinus von x
+ 
+SQR(x)     liefert die Quadratwurzel des Argumentes
+ 
+TAN(x)     Tangens von x
+ 
+ 
+Die Ergebnisse der Funktion liegen jeweils im Gleitpunkt-
+format vor. Einzige Ausnahmen sind die Funktionen SGN und
+INT, die eine ganze Zahl zur Verfuegung stellen.
+Fuer alle Winkelfunktionen muessen die Angaben des Winkels im
+Bogenmass erfolgen. Die Genauigkeit des Ergebnis ist stets
+fuer 7 Stellen gewaehrleistet.
+ 
+ Bsp.:
+ 
+   A=SIN(3,1415)
+   X%=SGN(COS(X/Y))
+   PRINT 4*ATN(1)
+ 
+Am zweiten Beispiel ist zu erkennen, dass es durchaus er-
+laubt ist, im Argument wieder eine Funktion anzugeben. Man
+beachte dabei, dass in den Klammern ein kompletter Ausdruck
+berechnet werden darf.
+ 
+Im folgenden Programm werden die Standardfunktionen Sinus,
+Cosinus, Tangens und Quadratwurzel fuer alle Werte von
+0 bis 3,5 in Schritten von 0,1 errechnet und in Listenform
+ueber dem Drucker formatiert ausgegeben.
+ 
+ Bsp.:
+ 
+   NEW
+   100  ASGN DAO=LPR
+   110  PRINT'   X   SINUS      COSINUS    TANGENS    WURZEL',
+   120  PRINT'----------------------------------------------'
+   130  FOR X=0 TO 3.5 STEP 0.1
+   140  PRINT FIX 5:1,X,
+   150  PRINT FIX 10:6,SIN(X),
+   160  PRINT ' ',FIX 10:6,COS(X)
+   170  PRINT ' ',FIX 10:6,TAN(X),
+   180  PRINT ' ',FIX 10:6,SQR(X)
+   190  NEXT X
+
+                        BASIC-T   Sprachbeschreibung  45
+
+
+Es gibt noch eine ganze Reihe weiterer Funktionen, die im
+Ergebnis einen numerischen Wert ergeben.
+In einer zweiten Gruppe sind alle Funktionen zusammenge-
+fasst, die ohne Argument auftreten.
+ 
+           /RND  \
+          |       |
+  nfk2::=<  TOP    >
+          |       |
+           \SIZE /
+ 
+Beim Auftreten dieser drei Schluesselworte innerhalb eines
+Ausdrucks werden folgende numerische Werte vom BASIC-T be-
+reitgestellt.
+ 
+RND   Ermittlung einer Zufallszahl 0 <= RND < 1.
+      Der Zahlentyp der Zufallszahl ist logischerweise vom
+      Typ Gleitpunkt.
+ 
+TOP   liefert die Adresse des ersten freien Speicherplatzes
+      nach dem fuer BASIC-T reservierten Bereich
+ 
+SIZE  stellt die Groesse des Speichers bereit, der dem
+      BASIC-T-System noch zur Verfuegung steht.
+ 
+Die Funktionen TOP und SIZE liefern ganze Zahlen im Er-
+gebnis. Mittels dieser Funktionen kann sich der Program-
+mierer Angaben ueber die Groesse des belegten und nocn
+freien Speicherplatzes verschaffen. Moegliche Einsatzgebiete
+sind die effektive Dimensionierung von Feldern, das Anlegen
+und Aufrufen von Maschinenunterprogrammen und vieles mehr.
+ 
+ Bsp.:
+ 
+   PRINT 'Es sind noch',SIZE,' Bytes frei'
+   PRINT 'Ermittlung einer Zufallszahl zwischen 1 und 10 : '
+   PRINT 1+INT(RND*10)
+ 
+ 
+Die dritte Gruppe von Funktionen ermittelt numerische Werte
+aus Zeischenkettenoperanden.
+ 
+             / LEN \
+            |       |
+  nfk3 ::= <   VAL   > (zaus)
+            |       |
+             \ ASC /
+ 
+Durch ihren Aufruf werden folgende Ergebnisse aus den angege-
+benen Zeichenketten ermittelt.
+ 
+LEN  Aktuelle Laenge der angegebenen Zeichenkette
+ 
+VAL  Die angegebenen Zeichenkette muss in ihrem Aufbau dem einer
+     numerischen Konstante entsprechen und wird mittels VAL in
+     einen numerischen Wert konvertiert.
+
+                        BASIC-T   Sprachbeschreibung  46
+
+
+ASC  Der Operand darf nur aus einem Zeichen bestehen. Der die-
+     sem Zeichen im ASCII-Code ensprechende Hexadezimalwert
+     wird bereitgestellt.
+ 
+ Bsp.:
+ 
+   PRINT LEN ('ABCDEF')
+        6
+   PRINT VAL('25'!!'E'!!'5')
+     0.25000000E+07
+   PRINT ASC('A'),ASC('b'),ASC('1')
+       65    98    49
+ 
+Abschliessend einige Anwendungsfaelle fuer diese Funktionen:
+ 
+- Test, ob eine Eingabe erfolgte, oder nur die Quittungstaste
+  gedrueckt wurde
+  INPUT EI$
+  IF  LEN (EI$)=0% THEN PRINT'NICHTS EINGEGEBEN'
+ 
+- Ausrichten einer Zeichenkette bei der Druckausgabe auf die
+  Druckposition 80. Dabei sollen die Zeichenketten rechtsbuen-
+  dig ausgegeben werden.
+  PRINT  COL(80-LEN(ZK$)),ZK$
+ 
+- Verzweigung eines Programmes entsprechend einer Eingabe
+  von 1...5
+ 
+  EI:INPUT'Zahl zwischen 1 und 5 eingeben'X$
+     IF LEN (X$)<>1 THEN FE
+     ON ASC(X$)-48  M1,M2,M3,M4,M5
+  FE:PRINT 'Anforderung beachten !';GOTO EI
+ 
+ 
+Die vierte noch folgende Gruppe umfasst die Funktionen, die
+es gestatten, auf die spezifische Hardware zuzugreifen.
+ 
+              /  /   PEEK   \         \
+             |  |            |         |
+             | <     DEEK     > (ausd) |
+    nfk4::= <   |            |          >
+             |   \   IN     /          |
+             |                         |
+              \      INCHAR           /
+ 
+Die Funktionen dienen vorrangig der Prozesssteuerung und bie-
+ten dem Programmierer einfache Zugriffe auf Speicherplaetze und
+E/A-Tore.
+ 
+PEEK      Lesen von 1 (bei PEEK) bzw. 2 (bei DEEK) Bytes von
+DEEK      der durch den Operanden bestimmten Speicheradresse.
+ 
+IN        Lesen eines Bytes von der durch den Wert des Operan-
+          den festgelegten Toradresse.
+ 
+INCHAR    Einlesen eines Zeichens von der Datei DAI. Dabei
+          wird der durch den ASCII-Code festgelegte numerische
+          Wert bestimmt. Mittels dieses Befehls ist es auch
+
+                        BASIC-T   Sprachbeschreibung  47
+
+
+          moeglich, z.B. Steuerzeichen von der Tastatur ein-
+          lesen.
+ 
+Bsp.:
+ 
+- Erhoehung des Inhaltes der Speicherzelle 1000H
+    POKE H'1000,PEEK(H'1000)+1
+ 
+- Programmierung einer PIO auf Bit E/A (alle Bit Eingabe) und
+  Warten, bis Bit 7 gesetzt
+      OUT PS%,H'CF  Mode 3
+      OUT PS%,H'FF  alle Eingabe
+      OUT PS%,H'07  ohne Interrupt
+   W: IF IN(PD%).AND.B'10000000=0 THEN W
+ 
+Bsp.:
+
+      IN:
+      ---
+      
+      100 A=65;         # KODIERUNG VON "A"
+      110 OUTCHAR A
+      120 B=IN(H'E1);   # EINLESEN DES STATUSPORTS DER TASTATUR
+      130 B=B.AND.4;    # ABFRAGE DER TASTE "CTRL"
+      140 IF B<>0 THEN 110
+      150 A=INCHAR
+      160 GOTO 110
+
+
+Der Buchstabe "A" wird bis zur Bet則igung von "CTRL" ausgegeben.
+Wird jetzt ein anderes Zeichen eingegeben, so wird dieses ausgegeben.
+
+                        BASIC-T   Sprachbeschreibung  48
+
+
+   6.2.   Zeichenkettenfunktionen
+   ------------------------------
+ 
+ 
+Fuer einen effektiven Umgang mit Zeichenkettenwerten sind in
+BASIC-T eine Reihe von speziellen Funktionen enthalten.
+ 
+              /     RIGHT (zaus,ausd)         \
+             |      LEFT  (zaus,ausd)          |
+    zfk::=  <       MID   (zaus,ausd,ausd)      >
+             |      CHR   (ausd)               |
+              \     STR   (ausd)              /
+ 
+Die ersten drei Funktionen werden benutzt fuer das Teilen von
+Zeichenketten.
+ 
+RIGHT  ergibt die durch den Wert des Ausdruckes bestimmte An-
+       zahl von Zeichen aus der Zeichenkette rechtsbuendig.
+ 
+LEFT   Es wird eine Teilkette erzeugt, die linksbuendig aus
+       der Zeichenkette abgeteilt wird.
+ 
+MID    Es wird ein Ausschnitt aus der Zeichnkette gebildet,
+       der bei dem durch den ersten Ausdruck angegebenem
+       Zeichen beginnt, und die durch den zweiten Ausdruck be-
+       stimmte Laenge aufweist.
+ 
+ Bsp.:
+ 
+   NEW
+   100 ZK$='ABCDEFGHIJKL'
+   110 PRINT ZK$
+   120 PRINT LEFT(ZK$,5)
+   130 PRINT RIGHT(ZK$,5)
+   140 PRINT MID(ZK$,3,5)
+   RUN
+   ABCDEFGHIJKL
+   ABCDE
+   HIJKL
+   CDEFG
+   READY
+
+                        BASIC-T   Sprachbeschreibung  49
+
+ 
+ 
+Bei der Angabe der Ausdruecke ist noch folgendes zu beachten.
+ 
+- Ein negativer Wert des Ausdruckes fuehrt zu Fehlern.
+ 
+- Ist das Ergebnis des Ausdruckes groesser als die Laenge der
+  noch zu verbleibenden Zeichenkette, so wird die gesamte
+  Zeichenkette als Ergebnis ermittelt. Es ist aber nicht moeg-
+  lich, Zeichenketten etwa durch Leerzeichen zu verlaengern.
+   Also:
+   LEFT('ABC',10)='ABC'
+   LEN(LEFT('ABC',10)=3
+ 
+- Ist das Ergebnis des ersten Ausdrucks bei MID groesser als
+  die Laenge der Zeichenkette, so wird eine leere Kette be-
+  reitgestellt.
+ 
+  MID('ABC',2,5)='BC'
+  MID('ABC',5,2)=''
+ 
+Mit diesen drei Funktionen kann man Zeichenketten beliebig
+analysieren oder veraendert zusammensetzen.
+ 
+Im ersten Beispiel wird eine Zeichenkette ZK$ aus das Vorhan-
+densein einer Teilkette TK$ untersucht. Die Stelle des Auftre-
+tens ist in der Variablen X% bereitzustellen.
+ 
+    FOR I%=1% TO LEN(ZK$)-LEN(TK$)+1%
+      IF MID(ZK$,I%,LEN(TK$))=TK$.THEN X%=I%;GOTO GE
+    NEXT I%
+    X%=0%; REM NICHTS GEFUNDEN
+ GE:...
+ 
+Im zweiten Beispiel soll eine Zeichenkette "herumgedreht" wer-
+den, d.h. Anfang und Ende sollen vertauscht werden.
+ 
+    Z1$='ABCDEFGH'
+    Z2$=''
+    FOR I=1 TO LEN(Z1$)
+      Z2$=MID(Z1$,I,1)!!Z2$
+    NEXT I
+    PRINT Z1$
+    PRINT Z2$
+ 
+ 
+So wie es bei den numerischen Funktionen moeglich war,
+Zeichenketten in numerische Werte zu konvertieren, ist auch
+eine Wandelung von Zahlen in Zeichenketten vorgesehen. Die
+dazu implementierten Funktionen lauten
+ 
+CHR   Das Argument der Funktion muss eine Zahl 0 <=Zahl< H'7F
+      sein. Diese wird dann entsprechend der ASCII-Codetabelle
+      in ein Zeichen konvertiert.
+ 
+STR   Es erfolgt eine Konvertierung von numerischen Werten in
+      eine Zeichenkette. Die dabei angewandten Regeln ent-
+      sprechen genau denen der Standardformate fuer PRINT.
+
+                        BASIC-T   Sprachbeschreibung  50
+
+
+Es bestehen damit genau inverse Funktionen fuer
+
+      ASC <--> CHR
+      VAL <--> STR
+ 
+Abschliessend wieder ein Beispiel fuer die Anwendung der
+Funktionen.
+ 
+-  Untersuchung einer Zeichenkette auf Kleinbuchstaben. Falls
+   Kleinbuchstaben vorkommen, so werden sie in Grossbuchstaben
+   umgeschluesselt
+
+    100    ZK$=''
+    200    FOR I=1 TO 10
+    300     Z=INCHAR
+    400     OUTCHAR Z
+    500     Z$=CHR(Z)
+    600     ZK$=ZK$!!Z$
+    700    NEXT I
+    800    OUTCHAR H'D;           # Zeilenruecklauf
+    900    FOR I=1 TO LEN(ZK$)
+   1000     HI%=ASC(MID(ZK$,I,1))
+   1100     IF HI%<H'61 THEN GB
+   1200     IF HI%>H'7A THEN GB
+   1300      ZK$=LEFT(ZK$,I-1)!!CHR(HI%-32%)!!RIGHT(ZK$,LEN(ZK$)-I)
+   1400 GB:NEXT I
+   1500    PRINT ZK$
+
+                        BASIC-T   Sprachbeschreibung  51
+
+
+   7. Komplette BASIC-T-Quellzeile
+   ===============================
+
+
+Bisher beschriebene BASIC-Beispiele waren sehr einfach aufge-
+baut. In jeder Quellzeile war in der Regel nur eine Anweisung.
+Eine solche Programmierung ist zwar sehr uebersichtlich und
+aenderungsfreundlich, aber in der Praxis geht man doch dazu
+ueber, mehrere logisch zusammenhaengende Anweisungen in einer
+Quellzeile zusammenzufassen. Dahinter steckt auch noch ein an-
+derer programmtechnischer Hintergrund. Zur Organisation einer
+jeden Quellzeile ist sowohl ein zusaetzlicher Speicherauf-
+wand als auch eine zusaetzliche Abarbeitungszeit notwendig,
+die jedoch von der Anzahl der Anweisungen je Zeile unabhaengig
+sind, d.h. je mehr Anweisungen pro Zeile, desto geringer ist
+der prozentuale Anteil fuer die Zeilenorganisation!
+Die Anzahl der Anweisungen haengt aber neben der sinnvollen
+Programmgestaltung auch von der maximalen Zeilenlaenge (je
+nach Systemimplementierung) und Anweisungstyp ab.
+ 
+Alle Anweisungen lassen sich in 2 grosse Gruppen teilen:
+ 
+anw1::= if_a | for_a | next_a | on_a | def_a | data_a
+ 
+anw2::= pri_a | inp_a | asgn_a | nerg_a | zerg_a | got_a |
+        gos_a | ret_a | read_a | rest_a | dim_a | spz_a |
+        ouc_a | st_a
+ 
+Der wesentliche Unterschied beider Typen besteht darin, dass
+die komplexen Anweisungen des Typ 1 nur allein auf einer Quell-
+zeile auftreten duerfen. Diese Einschraenkung steht nicht im
+Widerspruch zum Standard-BASIC, da dort generell nur eine Anwei-
+sung erlaubt war.
+Begruendet liegt die Massnahme in einer zeitoptimalen Verar-
+beitung in der interpretativen Phase des Programmes.
+ 
+Eine komplette BASIC-T Zeile hat damit folgendes Aussehen:
+ 
+                  /             /           \           \
+                 |             |   anw1      |           |
+  Zeile::=[zln] <  [sma:  ]   <  anw2;        > [;kmt_a]  >
+                 | |____...    | |___/...    |           |
+                 |              \           /            |
+                 |            kmt_a                      |
+                  \                                     /
+ 
+Eine Zeile kann durch eine Zeilennummer gekennzeichnet werden.
+Dadurch unterscheidet BASIC-T den Programm- und den Tisch-
+rechnermode. Im folgenden kann eine oder auch mehrere symbo-
+lische Marken angegeben werden. Daran schliesst sich der ei-
+gentliche Hauptteil an. Er besteht aus einer Anweisung vom
+Typ 1 oder eine Anweisungsfolge vom Typ 2. In beiden Faellen
+kann noch eine Kommentaranweisung folgen. Auch die Eingabe ei-
+ner einzelnen Kommentaranweisung ist erlaubt.
+
+                        BASIC-T   Sprachbeschreibung  52
+
+
+ Bsp.:
+ 
+   100 F1:F2: PRINT 'FEHLER';STOP
+   IF A=B THEN PRINT 'GLEICH'
+   200 FOR I=1 TO 10; PRINT '-' ;NEXT I           falsch!
+   150 # DAS IST KOMMENTAR
+   5 FOR I=1 TO 100; REM ZAEHLSCHLEIFE
+   500 M1=INPUT A; M2: PRINT A                    falsch!
+
+
+
+                        BASIC-T   Sprachbeschreibung  53
+
+
+   8. Das Kommandosystem
+   =====================
+ 
+ 
+Bisher beschriebene Anweisungen und Funktionen konnten stets
+entweder im Tischrechnermode abgearbeitet werden, oder mit
+Zeilennummer versehen als BASIC-Quellzeilen im Programm ab-
+gespeichert werden. Die in diesem Abschnitt beschriebenen
+Kommandos koennen nicht durch die Angabe einer Zeilennummer
+in das Programm aufgenommen werden. Sie haben stets den Cha-
+rakter des Tischrechnermodes und werden sofort nach ihrer Ein-
+gabe ausgefuehrt. Die Kommandos sind speziell fuer die Verwal-
+tung und die Organisation der Abarbeitung des Anwenderprogram-
+mes gedacht.
+ 
+ 
+   8.1. Kommandos zur Systemsteuerung
+   ----------------------------------
+ 
+ 
+             / RUN [zln[,zln]] \
+            |                   |
+  kom_s::= <   NEW               >
+            |                   |
+             \ BYE             /
+ 
+Diese 3 Kommandos beeinflussen unmittelbar den Systemzustand.
+ 
+NEW  Das gesamte BASIC-T geht in den Grundzustand ueber, der
+     nach dem Start herrscht. Alle Programme sind geloescht,
+     alle Konstanten und Variablen werden aus dem Speicher ge-
+     strichen.
+ 
+BYE  Das BACIC-T wird verlassen und in das Betriebssystem des
+     Mikrorechners zurueckgekehrt.
+ 
+RUN  Durch dieses Kommando geht BASIC-T von der Programmer-
+     stellungsphase (Compilerphase) in die Programmbearbei-
+     tungsphase (Interpreterphase) ueber. Wird keine Zeilen-
+     nummer angegeben, so erfolgt die Abarbeitung des gesamten
+     gespeicherten Programmes von der niedrigsten Zeilennummer
+     beginnend bis zur END- oder STOP-Anweisung bzw. bis zur
+     hoechsten vergebenen Zeilennummer.
+     Bei der Angabe von Operanden beginnt die Bearbeitung
+     stets bei der ersten angegebenen Zeilennummer bzw. der
+     naechsthoeheren, falls die angegebene nicht vorhanden ist.
+     Fehlt ein zweiter Operand, so wird nur diese (!) Zeile
+     bearbeitet. Bei der Angabe einer zweiten Zeilennummer
+     wird die Bearbeitung dann beendet, falls die Zeile mit
+     der entsprechenden Nummer vorgefunden wurde.
+
+                        BASIC-T   Sprachbeschreibung  54
+
+
+ Bsp.:
+ 
+   NEW
+   100 PRINT '100'
+   200 PRINT '200'
+   300 PRINT '300'
+   400 PRINT '400'
+   RUN                  Komplette Abarbeitung
+   100
+   200
+   300
+   400
+   READY
+   RUN 200,300
+   200
+   300                  Halt nach Zeile 300
+   READY
+   RUN 150,250
+   200
+   300                  Kein Halt, da Zeile 250 nicht existiert
+   400
+   READY
+   RUN 300
+   300
+   READY
+   BYE                  Meldung des uebergeordneten Betriebs-
+                        systems
+ 
+ 
+   8.2. Kommandos zur Programmerstellung
+   -------------------------------------
+ 
+ 
+Im Rahmen der Programmerstellung werden von BASIC-T eine Reihe
+von Funktionen angeboten, die eine wesentliche Hilfe bei der
+Eingabe darstellen. Die Dienste reichen von der einfachen Auf-
+listung eines gespeicherten Programmes ueber die automatische
+Vergabe von Zeilennummern bis hin zur kompletten Editor-
+funktion.
+ 
+             /                              \
+            |   / LIST   \                   |
+            |  |          |                  |
+            | <   NUMBER   >   [zln[,zln]]   |
+            |  |          |                  |
+  kom_e::= <    \ DELETE /                    >
+            |                                |
+            |     [NO]MEM                    |
+            |                                |
+            |      zln                       |
+             \                              /
+ 
+LIST
+ 
+Auflisten eines bisher gespeicherten Quellprogramms.
+Je nach der Angabe von Operanden erfolgt dabei die Protokol-
+lierung von:
+ohne Operanden: komplettes Programm
+ein  Operand  : nur dieser Zeile
+zwei Operanden: allen Zeilen zwischen den beiden Zeilennummern
+
+                        BASIC-T   Sprachbeschreibung  55
+
+
+NUMBER
+
+Einschalten der automatischen Numerierung. Dabei sind im
+ersten Operanden die kleinste zu vergebende Zeilennummer und
+im zweiten Operanden die Schrittweite angebbar. Fehlen Ope-
+randen, so gilt die Standardannahme: NUMBER 100,10.
+Ab diesem Kommando wird die Eingabezeile auf dem Bildschirm
+bereits mit der naechstfolgenden Zeilennummer vorbereitet und
+der Curser dahinter positioniert.
+Ausgeschaltet wird die automatische Numerierung durch:
+- Eingabe einer anderen Zeilennummer als der vorgegebenen.
+- Ausfuehrung Tischrechnermode
+- Ausfuehrung eines Kommandos (ausser bei LIST)
+
+DELETE
+
+Loeschen von BASIC-Quellzeilen. Je nach der Angabe von Ope-
+randen werden geloescht:
+ohne Operanden: alle Quellzeilen
+ein  Operand  : nur diese Zeile
+zwei Operanden: alle Quellzeilen zwischen den beiden angegebe-
+                nen Zeilennummern.
+Man beachte einen wesentlichen Unterschied zwischen DELETE
+und NEW! Waehrend bei NEW ein komplettes Loeschen erfolgt,
+werden bei DELETE nur die Quellzeilen aus dem Programm ge-
+strichen. Alle belegten Konstanten, Variablen und Felder
+bleiben dagegen mit ihren letzten zugewiesenen Werten erhal-
+ten und sind ueber ihren Namen nach wie vor ansprechbar. Diese
+Eigenschaft kann man sehr guenstig zur Parameteruebergabe
+zwischen Programmen ohne die Benutzung externer Datentraeger
+anwenden. Dabei wird so verfahren:
+- NEW
+- Laden des ersten Programmes
+- Abarbeiten des ersten Programmes und Bereitstellung der
+  Parameter in Variablen oder Feldern
+- DELETE
+- Laden zweites Programm
+- Abarbeitung durch Nutzung der Parameter des ersten Program-
+  mes unter Beibehaltung ihres im ersten Programm benutzten
+  Namens
+  usw.
+ 
+[NO]MEM
+ 
+Durch diese Kommandos wird eine Speicherung der eigentlichen
+BASIC-Quellzeichen organisiert. In der Einlesephase uebersetzt
+BASIC-T die Quellzeile in einen Zwischencode. Die Quellinfor-
+mation wird von BASIC-T danach nicht mehr benoetigt. Sie dient
+lediglich dem Programmierer in der Programmerstellungs- und
+
+                        BASIC-T   Sprachbeschreibung  56
+
+
+Testphase. Falls ein Programm dann fertig und ausgetestet ist,
+braucht die Quelle nicht mehr gespeichert zu werden und der da-
+durch frei gewordene Speicherplatz kann anderweitig (z.B. fuer
+Felder) effektiver eingesetzt werden.
+
+MEM:     Quelltextspeicherung ein. Dieser Zustand liegt automa-
+         tisch nach dem Systemstart vor
+NOMEM:   ohne Quelltextspeicherung
+
+Beide Kommandos gelten bis zu ihrer Aufhebung durch das ent-
+sprechende "Gegenkommando".
+
+zln
+ 
+Die Eingabe einer einzelnen Zeilennummer ist nur dann sinn-
+voll, wenn eine Quellzeile mit dieser Zeilennummer bereits
+gespeichert ist. Diese Zeile wird anschliessend im Eingabebe-
+bereich des Bildschirms zur Verfuegung gestellt. Dort darf
+die Zeile komplett (auch einschliesslich der Zeilennummmer!)
+editiert werden. Wird die Zeile mit einer anderen Nummer ver-
+sehen oder geloescht, so wird die komplette Zeile mit der ur-
+spruenglichen Nummer aus dem Programmspeicher gestrichen.
+Die Qualitaet des eigentlichen Editierens der Zeile (INS- und
+DEL-Funktion, Cursoroperationen) haengt einzig von der Guete
+der bei der Systemgenerierung durch den Anwender zu erstel-
+lenden Tastaturroutine ab, und ist nicht Bestandteil des ei-
+gentlichen BASIC-T-Systems. Dieses uebernimmt nur die Orga-
+nisation der Anzeige und Wiederverarbeitung.
+
+
+   8.3. Kommandos zur Programmarchivierung
+   ---------------------------------------
+
+
+Ist ein Anwenderprogramm fertiggestellt, oder muss die Arbeit
+am Rechner abgebrochen werden, so ist es natuerlich wuen-
+schenswert, den erreichten Stand in einer maschinenlesbaren
+Form zu speichern und bei erneuter Arbeit wieder in den Rech-
+ner einzugeben. Zu diesem Zweck dienen die zwei Kommandos:
+
+             /                  \
+            | SAVE [zln[,zln]]   |
+  kom_a::= <                      >
+            | LOAD               |
+             \                  /
+
+SAVE  dient der Ausgabe eines gespeicherten Programmes.
+      Ebenso wie beim Kommando LIST kann auch hier wieder
+      durch die Angabe von Zeilennummern eine Auswahl von
+      BASIC-Quellzeilen getroffen werden. Falls eine der aus-
+      zugebenden Zeilen nicht im Quelltext gespeichert ist
+      (durch Kommando NOMEM), so erfolgt eine Fehlermeldung
+      und im geretteten Programm erfolgt keine Eintragung,
+      auch keine Angabe der Zeilennummer.
+ 
+LOAD  fuehrt zur Eingabe eines BASIC-Quellprogrammes in den
+      Rechner.
+ 
+Der Informationsaustausch zwischen BASIC-T und dem Nutzer in
+der Kommando- und Programmerstellungsphase erfolgt ueber die
+beiden Dateien COO und COI. Eine Ausnahme stellen die beiden
+in diesem Abschnitt beschriebenen Kommandos SAVE und LOAD.
+Die durch SAVE ausgegebenen bzw. mit LOAD angeforderten Daten
+werden ueber die Dateien DAO und DAI ausgetauscht. Grund
+hierfuer sind die sorgfaeltige Trennung zwischen Kommandopro-
+
+                        BASIC-T   Sprachbeschreibung  57
+
+
+tokollierung und Programminformationen. Zum Beispiel wird das
+SAVE-Kommando ueber die Kommandodatei protokolliert und die
+Programmausgabe beginnt parallel ueber die Datenausgabedatei.
+Die Zuweisung auf das Speichermedium kann bei Bedarf durch
+die im Tischrechnermode abarbeitungsfaehige ASGN-Anweisung
+erfolgen.
+
+ Bsp.:
+
+   ASGN DAO=PTP
+   SAVE
+
+   Ausgabe auf Lochstreifen
+
+   ASGN DAO=MTW 'PROG'
+   SAVE
+
+   Ausgabe auf Magnetband
+
+
+
+                        BASIC-T   Sprachbeschreibung  58
+
+
+
+   9. Das Fehlersystem
+   ===================
+
+
+BASIC-T unterscheidet waehrend der Einlese- (Compiler-) und
+waehrend der Abarbeitungs (Interpreter-)phase eine Reihe von
+Fehlern und Warnungen. Sofort bei Erkennen wird der Programm-
+lauf unterbrochen, und der Fehler als eine Fehlernummer ueber
+das zugewiesenen Geraet der COO-Datei ausgegeben. Die Nummern
+sind entsprechend ihres Auftretens bzw. ihrer Wichtung in 5
+grosse Gruppen aufgeteilt und werden einleitend alle in Form
+einer Tabelle erlautert.
+
+Die Tabelle enthaelt dabei die Fehlernummer (NR), die von
+BASIC-T ausgegeben wird. In den Spalten COM und INT wird an-
+gezeigt, ob der Fehler waehrend der Compilerphase oder waeh-
+rend der Interpreterphase auftreten kann. Ist der Fehler Fol-
+ge einer ganz bestimmten Anweisung, so ist diese in der Spalte
+ANW angegeben. Ein Strich bedeutet, dass eine Reihe von Anwei-
+sungen zu diesen Fehlern fuehren kann.
+
+
+Nr. COM INP ANW.    Bedeutung
+---------------------------------------------------------------
+
+  1  *   *   -      Nur noch 100 freie RAM-Plaetze zur Ver-
+                    fuegung
+  2  *   *   -      RAM-Speicher restlos belegt
+  3      *  END     Der Speicher ist nicht bis zur angegebenen
+                    Adresse mit RAM bestueckt
+  4      *  END     Speicher laesst sich nicht so weit ver-
+                    kleinern
+
+ 10  *       -      Fehler bei lexikalischer Analyse. Es wurde
+                    gegen die Regeln zur Bildung von Operato-
+                    ren, Namen oder Konstanten verstossen.
+ 11  *       -      Syntaxfehler. Es wurde gegen die Regeln
+                    zur Bildung der Sprache verstossen.
+ 12  *              Symbolische Marke doppelt definiert
+ 13  *       -      Der erstellte Zwischencode fuer diese Zei-
+                    le ist zu lang. Die Anweisung ist ein-
+                    facher zu gestalten oder zu teilen.
+ 14  *       -      Diese Anweisung ist nicht im Tischrechner-
+                    mode abarbeitungsfaehig.
+
+ 20  *       -      Symbolische Marke ist nicht definiert oder
+                    eine Zeilennummer als Sprungziel ist nicht
+                    vorhanden
+ 21  *       -      Fehler in der FOR-NEXT-Organisation
+
+ 30      *  ausd    Bei der Berechnung ist ein Zahlenbereichs-
+                    ueberlauf bei Gleitpunktzahlen aufgetreten
+
+                        BASIC-T   Sprachbeschreibung  59
+
+
+ 31  *   *  ausd    Zahlenbereichsueberlauf bei ganzen Zahlen
+ 32      *  ausd    Exponentenueberlauf
+ 33      *  ausd    Exponentenunterlauf
+ 34      *  zaus    Bei der Verkettung entstand eine Zeichen-
+                    kette, die laenger als 255 Zeichen ist
+ 35      *  zfk     Die numerische Operandenausgabe in einer
+                    Zeichenkettenfunktion ist fehlerhaft
+ 36      *  ASC     Die Laenge der Zeichenkette ist ungleich 1
+ 37      *   -      Operandentypen stimmen bei der Zuweisung
+                    nicht ueberein (Zeichenkette<-> numerisch)
+ 38      *   -      Die angesprochene Zeichenkette ist noch
+                    "leer"
+ 39  *   *  PRINT   Formatfehler bei einer PRINT-Steueran-
+                    weisung
+ 40      *  ausd    Division durch Null
+ 41      *   -      Fehler bei der Ausfuehrung einer Funktion
+                    (z.B. Argument ausserhalb des zugelassenen
+                    Bereiches)
+
+ 60      *  RETURN  Es soll ein RETURN ausgefuehrt werden, ob-
+                    wohl kein GOSUB erfolgte
+ 61      *  DIM     Fehlerhafte Dimensionierung
+ 62      *   -      Angesprochenes Feld noch nicht definiert
+ 63      *   -      Fehler bei Indexberechnung (Differenz der
+                    Anzahl der Dimensionen oder Index ausser-
+                    halb der Grenzen)
+ 64      *   -      Fehler in der RESTORE-Anweisung oder keine
+                    Daten vorhanden
+ 65      *  READ    DATA-Elemente sind vollstaendig abgear-
+                    beitet
+ 67      *  INPUT   Eingabe verstoesst gegen die lexikalischen
+                    Vorschriften
+ 80      *          Geraetefehler allgemein
+ 81      *          Angesprochene Datei nicht zugewiesen
+ 82      *                  -"-         nicht eroeffnet
+ 83      *                  -"-         keine Ausgabedatei
+ 84      *                  -"-         keine Eingabedatei
+
+ Ab
+100      *          Fehlernummern fuer E/A-Geraete, durch den
+                    Anwender zu vergeben.
+
+
+Die weiteren Aktionen vom BASIC-T richten sich nach dem Zeit-
+punkt des Auftretens des Fehlers.
+Werden Fehler sofort bei der Eingabe erkannt (Fehler 10...14),
+so wird die Eingabe protokolliert und an die festgestellte
+Fehlerstelle ein Fragezeichen eingeschoben. Gleichzeitig wird
+die Zeile im Eingabebereich wieder zur Korrektur angezeigt.
+Dabei wird der Cursor schon an die Fehlerstelle positioniert
+
+                        BASIC-T   Sprachbeschreibung  60
+
+
+ Bsp.:
+ 
+   Eingabe  INPUT 'EINGABE =',A
+   Anzeige  ERROR 11
+            INPUT 'EINGABE', ? A     Komma ist fehlerhaft
+ 
+   Eingabe  A=11,25
+   Anzeige  ERROR 10
+            A=11, ? 25               Komma statt Punkt
+ 
+Alle anderen Fehler, die erst zum Zeitpunkt des eigentlichen
+Programmlaufes erkannt werden, haben beispielsweise dies Form:
+ 
+   ERROR 40 AT LINE 125
+    125 PRINT A/0
+ 
+Die Fehlernummer wird mit der Angabe der Zeilennummer der be-
+treffenden BASIC-Quellzeile versehen. Falls die Speicherung
+dieser Zeile nicht mit mit NOMEM verhindert wurde, erfolgt
+ihre Protokollierung.
+
+                        BASIC-T   Sprachbeschreibung  61
+
+
+   **********************************************
+   *  Anlagen zur BASIC-T - Sprachbeschreibung  *
+   **********************************************
+
+
+
+   I.   Zeichensatz
+  ==================
+
+ Buchstaben
+ ----------
+  bu::= A | B | C | ... | X | Y | Z
+
+ Ziffern
+ -------
+  zi::= 0 | 1 | ... | 8 | 9
+
+ Arithmetische Operatoren
+ ------------------------
+  arop::= + | - | * | / | **        ( ** fuer die Potenzierung )
+
+ Logische Operatoren
+ -------------------
+  loop::= .NOT.|.AND.|.OR.|.NAND.|.NOR.|.XOR.
+
+ Vergleichsoperatoren
+ --------------------
+  vop::= = | < | > | <= | >= | <>
+
+ Sonderzeichen
+ -------------
+  sz::= , | : | ; | ( | ) | ' | " | % | & | $ | !
+
+
+
+
+  II.  Datenobjekte
+ ===================
+
+
+ Gleitpuktzahl
+ -------------
+           /          [ n ] . n                \
+          |                                     |
+          |              /     \                |
+   ngk::=<              |  [+]  |                >
+          |   n [.n] [ <         > E zi [zi] ]  |
+          |             |   -   |               |
+           \             \     /               /
+
+
+                        BASIC-T   Sprachbeschreibung  62
+
+
+ ganze Zahl
+ ----------
+            / H'hzi      \        H'0 ... H'7FFF
+           |   |___...    |
+           |  zi    %     |         0 ... 32767
+   niz::= <  |__...        >
+           |  B'bzi       |       B'0 ... B'111111111111111
+            \  |___...   /
+
+ Zeichenkettenkonstante
+ ----------------------
+               /   \             /   \
+              |  '  |           |  '  |
+      zkk ::=<       > Zeichen <       >
+              |  "  |           |  "  |
+               \   /             \   /
+
+ Namen
+ -----
+    name ::= bu [ bu | zi ]
+
+ Gleitpunktvariable
+ ------------------
+    skalar                       Feld
+
+  ngv::= name                   ngf::=ngv [(ausd [,ausd] )]
+
+ ganzzahlige Variable
+ --------------------
+    skalar                       Feld
+
+  niv::= name%                  nif::=niv [(ausd [,ausd] )]
+
+ Zeichenkettenvariable
+ ---------------------
+    skalar                       Feld
+
+  zkv::= name$                  zkf::=zkv [(ausd [,ausd] )]
+
+ Symbolische Marken
+ ------------------
+
+  sma::= name:
+
+ Symbolische Dateinamen
+ ----------------------
+
+  sda::= name&
+
+
+                        BASIC-T   Sprachbeschreibung  63
+
+
+
+  III. Anweisungen
+ ==================
+
+
+ Numerische Ausdruecke
+ ---------------------
+                       /  ngk  \
+           /.NOT.\    |   nik   |    /    \
+          |       |   |   ngf   |   | arop |
+ ausd::= <    -    > <    nif    > <        >
+          |       |   |   nfk   |   | loop |
+           \ [+] /    |  (ausd) |    \    /
+                       \       /
+
+ Zeichenkettenausdruecke
+ -----------------------
+            / zkk  \
+           |        |
+  zaus::= <   zkf    > !!
+           |        |
+            \ zfk  /
+             |_________/.....
+
+ Numerische Ergibtanweisung
+ --------------------------
+                       /   \
+                      | ngf |
+   nerg_a::= [ LET ] <       > = ausd
+                      | nif |
+                       \   /
+
+ Zeichenkettenergibtanweisung
+ ----------------------------
+   zerg_a::= [ LET ] zkf = zaus
+
+ Ausgabeanweisung
+ ----------------
+                   / psta \
+                  |        |
+  pri_a::= PRINT <   ausd   > ,  [ , ]
+                  |        |
+                   \ zaus /
+                 |____________/......
+
+       mit Drucksteueranweisungen
+                             /   \              /FIX\
+                            | COL |            | FLO |
+     psta::= PAGE | SKIP | <       > (ausd) | <       > n:n
+                            | TAB |            | HEX |
+                             \   /              \BIN/
+
+ Eingabeanweisung
+ ----------------
+                          / ngf \
+                         |       |
+  inp_a::= INPUT [ zkk ]<   nif   > ,
+                         |       |
+                          \ zfk /
+                         |__________/.....
+
+
+                        BASIC-T   Sprachbeschreibung  64
+
+
+ Geraetezuweisung
+ ----------------
+                           /   \
+                          | zkk |
+  asgn_a::= ASGN dat=ger <       >
+                          | zkv |
+                           \   /
+
+        mit Datei
+      dat::= DAI | DAO | COI | COO | sda
+
+        und Geraet
+      ger::= KEY | PTR | MTR | FDR | SCR | LPR | PTP | MTW | FDW
+
+ Spruenge
+ --------
+   got_a::= GOTO spz
+
+        mit Sprungziel
+
+      spz::= zln | name
+
+ Unterprogrammspruenge
+ ---------------------
+   gos_a::= GOSUB spz
+
+   ret_a::= RETURN
+
+                      /       \
+                     | anw2;   |
+   on_a::= ON ausd  <  |___/... >
+                     |  spz    |
+                      \       /
+
+ Vergleichsanweisung
+ -------------------
+             /           \          /     \           /     \
+            |    ausd     |        |  spz  |         |  spz  |
+  if_a::=IF< zaus vop zaus > THEN <         >[ ELSE <         >]
+            |ausd vop ausd|        |anw2;  |         |anw2;  |
+             \           /         ||___/..|         ||___/..|
+                                    \     /           \     /
+ 
+ Zyklusanweisungen
+ -----------------
+                /   \
+               | ngv |
+  for_a::=FOR <       > = ausd TO ausd [ STEP ausd ]
+               | niv |
+                \   /
+
+                  /   \
+                 | ngv |
+  next_a::=NEXT <       >
+                 | niv |
+                  \   /
+
+
+                        BASIC-T   Sprachbeschreibung  65
+
+
+ Datenanweisungen
+ ----------------
+   data_a::= DATA  dael,
+                  |____/....
+
+   read_a::=READ { ngf | nif | zkf }
+
+   rest_a:: RESTORE [ spz ]
+
+        mit DATA-Elementen
+
+     dael::= ngk | nik | zkk | ngv | niv | zkv
+
+ Dimensionsanweisung
+ -------------------
+                 / ngv \
+                |       |
+  dim_a::= DIM <   niv   > ( ausd [, ausd] )
+                |       |
+                 \ zkv /
+
+ Funktionsdefinition
+ -------------------
+                         /   \
+                        | niv |
+   def_a::= DEF FNname(<       >) = ausd
+                        | ngv |
+                         \   /
+
+ Anweisungen fuer Speicherzugriff
+ --------------------------------
+            /    END    ausd         \
+           |   / POKE \               |
+           |  |        |              |
+  spz_a::=<  <   DOKE   > ausd , ausd  >
+           |  |        |              |
+           |   \ OUT  /               |
+            \    CALL   ausd         /
+
+ Zeichenausgabeanweisung
+ -----------------------
+
+   ouc_a::=OUTCHAR  ausd
+
+ Programmbeendigung
+ ------------------
+
+   st_a::= STOP | END
+
+ Kommentaranweisung
+ ------------------
+             /   \
+            | REM |
+   kmt_a::=<       > zeichen
+            |  #  |
+             \   /
+
+
+                        BASIC-T   Sprachbeschreibung  66
+
+
+
+ Komplette BASIC-T - Quellzeile
+ ------------------------------
+
+                  /             /           \           \
+                 |             |   anw1      |           |
+  Zeile::=[zln] <  [sma:  ]   <  anw2;        > [;kmt_a]  >
+                 | |____...    | |___/...    |           |
+                 |              \           /            |
+                 |           kmt_a                      |
+                  \                                     /
+
+        Mit Anweisungen vom Typ 1
+
+      anw1::= if_a | for_a | next_a | on_a | def_a | data_a
+
+        Anweisungen vom Typ 2
+
+      anw2::= pri_a | inp_a | asgn_a | nerg_a | zerg_a |
+              gos_a | got_a | ret_a | read_a | rest_a |
+              dim_a | spz_a | ouc_a | st_a
+
+
+                        BASIC-T   Sprachbeschreibung  67
+
+
+  IV. Funktionen
+ ================
+
+
+ Numerische Funktionen
+ ---------------------
+
+   nfk::= nfk1 | nfk2 | nfk3 | nfk4
+
+ Mathematische Standardfunktionen
+ --------------------------------
+          /ABS   \
+         | ATN    |
+         | COS    |
+         | EXP    |
+         | FNname |
+ nfk1::=<  INT     > (ausd)
+         | LOG    |
+         | SGN    |
+         | SIN    |
+         | SQR    |hz
+          \TAN   /
+
+ Funktionen ohne Argument
+ ------------------------
+           /RND  \
+          |       |
+  nfk2::=<  TOP    >
+          |       |
+           \SIZE /
+
+ Numerische Werte aus Zeichenketten
+ ----------------------------------
+             / LEN \
+            |       |
+  nfk3 ::= <   VAL   > (zaus)
+            |       |
+             \ ASC /
+
+ Funktionen mit Speicherzugriff
+ ------------------------------
+              /  /   PEEK   \         \
+             |  |            |         |
+             | <     DEEK     > (ausd) |
+    nfk4::= <   |            |          >
+             |   \   IN     /          |
+             |                         |
+              \      INCHAR           /
+
+ Zeichenkettenfunktionen
+ -----------------------
+              /     RIGHT (zaus,ausd)         \
+             |      LEFT  (zaus,ausd)          |
+    zfk::=  <       MID   (zaus,ausd,ausd)      >
+             |      CHR   (ausd)               |
+              \     STR   (ausd)              /
+
+
+                        BASIC-T   Sprachbeschreibung  68
+
+
+
+  V.  Kommandos
+ ===============
+
+
+ Kommandos zur Systemsteuerung
+ -----------------------------
+             / RUN [zln[,zln]] \
+            |                   |
+  kom_s::= <   NEW               >
+            |                   |
+             \ BYE             /
+
+ Kommandos zur Programmerstellung
+ --------------------------------
+             /                              \
+            |   / LIST   \                   |
+            |  |          |                  |
+            | <   NUMBER   >   [zln[,zln]]   |
+            |  |          |                  |
+  kom_e::= <    \ DELETE /                    >
+            |                                |
+            |     [NO]MEM                    |
+            |                                |
+             \      zln                     /
+
+ Kommandos zur Programmarchivierung
+ ----------------------------------
+             /                  \
+            | SAVE [zln[,zln]]   |
+  kom_a::= <                      >
+            | LOAD               |
+             \                  /
+
+

@@ -1,0 +1,2 @@
+# Optionaler Emulator nur fuer die Regressionstests, nicht zum Assemblieren.
+z80==1.2.0
