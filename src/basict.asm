@@ -9195,12 +9195,6 @@ L3E18:
 ; Fuellbytes bis RAM_BASE, nur damit die Datei bei 0100H dem
 ; Original (0100H-3FFFH) entspricht.
         IF      CODE_ORG=0100H
-
-;=====================================================================
-; ENDE DES CODES
-; Ab 4000H folgt das mitgespeicherte Abbild des Arbeitsspeichers
-; (Variablen, Puffer, Kanalbloecke). Es wird beim Start ueberschrieben.
-;=====================================================================
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3E28 ........
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3E30 ........
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3E38 ........

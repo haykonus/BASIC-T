@@ -103,7 +103,4 @@ C={
  'Subtraktion; gelaufen wird entlang der laengeren Achse.'),
 0x3D95:'Einzelpunkt fuer LINE (x in C\', y in B\')',
 0x3DEF:'OFF (Unterfunktion 2): 9000H-9FFFH=0, 8000H-81FFH=0, 8200H-83FFH=27H',
-0x3E28:S('ENDE DES CODES',
- 'Ab 4000H folgt das mitgespeicherte Abbild des Arbeitsspeichers',
- '(Variablen, Puffer, Kanalbloecke). Es wird beim Start ueberschrieben.'),
 }
