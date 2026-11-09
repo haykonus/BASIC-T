@@ -25,8 +25,9 @@
 ;   3300H-36FFH  Zeilenverwaltung, Fehler, Meldungen, Zeichen-E/A
 ;   3700H-3AFFH  DRVTAB (Treiber-Haken), Datei-E/A ueber BDOS
 ;   3B00H-3E27H  Grafikmodul (DOT, LINE, FILL, TEST, OFF)
-;   4000H-50FFH  Abbild des Arbeitsspeichers (Variablen, Puffer);
-;                wichtige Zellen: FAC 42E2H, ARG 42E7H, FAC_TYPE 42E1H
+;   4000H-43ADH  Arbeitsspeicher (am Ende als DS-Labels; nicht in der
+;                Datei). Das Original enthielt ab 4000H nur einen beim
+;                SAVE mitgespeicherten Speicherrest; er entfaellt hier.
 ;
 ; SYNTAX-KNOTEN (Kommentar "KW/TOK/RULE/EPS") der Grammatik:
 ;   Bit7 letzte Alternative, Bit6 Aktionsbyte folgt (rel. vorwaerts),
@@ -50,7 +51,19 @@ BDOS    EQU     0005H                   ; CP/M-Systemaufruf, Funktion in C
 GPORT   EQU     08H                     ; Bit7=1: normaler RAM, Bit7=0: Video-RAM
 GRAM    EQU     9000H                   ; 4 KByte Pixelspeicher 256x128, 32 Byte/Zeile
 
+; Ladeadresse des Codes. Standard 0100H (CP/M, byte-identisch).
+; Anders z. B. mit:  asl -D CODE_ORG=0200H ...  Dann steht bei 0100H
+; nur ein Sprung nach START, und das Speicherabbild ab 3E28H entfaellt.
+; Der Code muss unter RAM_BASE bleiben.
+RAM_BASE EQU    4000H                   ; Beginn des Arbeitsspeichers
+        IFNDEF  CODE_ORG
+CODE_ORG EQU    0100H
+        ENDIF
+        IF      CODE_ORG<>0100H
         ORG     0100H
+        JP      START
+        ENDIF
+        ORG     CODE_ORG
 
 ;=====================================================================
 ; PROGRAMMSTART UND INITIALISIERUNG
@@ -66,13 +79,13 @@ START:
         NOP                             ; 0103  00
         NOP                             ; 0104  00
         NOP                             ; 0105  00
-        LD      SP,43ADH                ; 0106  31ad43
+        LD      SP,STACK_TOP            ; 0106  31ad43
         LD      HL,(0006H)              ; 0109  2a0600
-        LD      DE,4001H                ; 010C  110140
+        LD      DE,V_4001               ; 010C  110140
         XOR     A                       ; 010F  af
         SBC     HL,DE                   ; 0110  ed52
         EX      DE,HL                   ; 0112  eb
-        LD      HL,3FFFH                ; 0113  21ff3f
+        LD      HL,RAM_BASE-1           ; 0113  21ff3f
 L0116:
         INC     HL                      ; 0116  23
         LD      (HL),0FFH               ; 0117  36ff
@@ -88,48 +101,48 @@ L0116:
         JR      nz,L0116                ; 0124  20f0
 L0126:
         DEC     HL                      ; 0126  2b
-        LD      (41B7H),HL              ; 0127  22b741
-        LD      (419CH),SP              ; 012A  ed739c41
-        LD      HL,3704H                ; 012E  210437
-        LD      DE,41FBH                ; 0131  11fb41
+        LD      (RAMTOP),HL             ; 0127  22b741
+        LD      (SP_INIT),SP            ; 012A  ed739c41
+        LD      HL,DRV_INIT             ; 012E  210437
+        LD      DE,CHANTAB              ; 0131  11fb41
         LD      BC,37H                  ; 0134  013700
         LDIR                            ; 0137  edb0
-        LD      HL,420DH                ; 0139  210d42
-        LD      (41F1H),HL              ; 013C  22f141
-        LD      (41F3H),HL              ; 013F  22f341
-        LD      HL,41FBH                ; 0142  21fb41
-        LD      (41F5H),HL              ; 0145  22f541
-        LD      (41F7H),HL              ; 0148  22f741
+        LD      HL,V_420D               ; 0139  210d42
+        LD      (V_41F1),HL             ; 013C  22f141
+        LD      (V_41F3),HL             ; 013F  22f341
+        LD      HL,CHANTAB              ; 0142  21fb41
+        LD      (V_41F5),HL             ; 0145  22f541
+        LD      (V_41F7),HL             ; 0148  22f741
         LD      A,0FFH                  ; 014B  3eff
-        LD      (41B4H),A               ; 014D  32b441
+        LD      (V_41B4),A              ; 014D  32b441
 ; ---- Treiber-Initialisierung (DRVTAB: leer, nur RET)
         CALL    DRVTAB                  ; 0150  cd0037
         LD      HL,MSG_WELCOME          ; 0153  211934
         CALL    PRINT_STR               ; 0156  cde735
 L0159:
-        LD      SP,43ADH                ; 0159  31ad43
-        LD      IX,410CH                ; 015C  dd210c41
+        LD      SP,STACK_TOP            ; 0159  31ad43
+        LD      IX,V_410C               ; 015C  dd210c41
         LD      (IX-1),1                ; 0160  dd36ff01
         LD      (IX),90H                ; 0164  dd360090
-        LD      HL,41C1H                ; 0168  21c141
+        LD      HL,V_41C1               ; 0168  21c141
         SET     0,(HL)                  ; 016B  cbc6
         RES     7,(HL)                  ; 016D  cbbe
-        LD      HL,408AH                ; 016F  218a40
-        LD      (4084H),HL              ; 0172  228440
+        LD      HL,ED_BUF               ; 016F  218a40
+        LD      (V_4084),HL             ; 0172  228440
         XOR     A                       ; 0175  af
         LD      H,A                     ; 0176  67
         LD      L,H                     ; 0177  6c
-        LD      (4088H),HL              ; 0178  228840
-        LD      (4083H),A               ; 017B  328340
-        LD      (418CH),HL              ; 017E  228c41
-        LD      (41B5H),HL              ; 0181  22b541
-        LD      (4192H),HL              ; 0184  229241
-        LD      (4194H),HL              ; 0187  229441
-        LD      (419EH),HL              ; 018A  229e41
-        LD      (4198H),HL              ; 018D  229841
-        LD      (4196H),HL              ; 0190  229641
-        LD      (41A2H),HL              ; 0193  22a241
-        LD      HL,41C2H                ; 0196  21c241
+        LD      (ED_RPTR),HL            ; 0178  228840
+        LD      (V_4083),A              ; 017B  328340
+        LD      (V_418C),HL             ; 017E  228c41
+        LD      (V_41B5),HL             ; 0181  22b541
+        LD      (V_4192),HL             ; 0184  229241
+        LD      (V_4194),HL             ; 0187  229441
+        LD      (V_419E),HL             ; 018A  229e41
+        LD      (V_4198),HL             ; 018D  229841
+        LD      (V_4196),HL             ; 0190  229641
+        LD      (V_41A2),HL             ; 0193  22a241
+        LD      HL,V_41C2               ; 0196  21c241
         BIT     0,(HL)                  ; 0199  cb46
         RES     0,(HL)                  ; 019B  cb86
         JR      nz,L01D4                ; 019D  2035
@@ -137,22 +150,22 @@ L0159:
         BIT     2,(HL)                  ; 01A2  cb56
         RES     2,(HL)                  ; 01A4  cb96
         JR      z,L01C1                 ; 01A6  2819
-        LD      HL,(41B9H)              ; 01A8  2ab941
-        LD      (41BBH),HL              ; 01AB  22bb41
+        LD      HL,(V_41B9)             ; 01A8  2ab941
+        LD      (V_41BB),HL             ; 01AB  22bb41
         PUSH    HL                      ; 01AE  e5
         CALL    L1343                   ; 01AF  cd4313
         POP     HL                      ; 01B2  e1
-        LD      (418CH),HL              ; 01B3  228c41
+        LD      (V_418C),HL             ; 01B3  228c41
         CALL    L2272                   ; 01B6  cd7222
         LD      HL,0                    ; 01B9  210000
-        LD      (418CH),HL              ; 01BC  228c41
+        LD      (V_418C),HL             ; 01BC  228c41
         JR      L01D4                   ; 01BF  1813
 L01C1:
-        LD      HL,(41BDH)              ; 01C1  2abd41
+        LD      HL,(V_41BD)             ; 01C1  2abd41
         LD      A,H                     ; 01C4  7c
         OR      L                       ; 01C5  b5
         JR      z,L01D4                 ; 01C6  280c
-        LD      IY,4204H                ; 01C8  fd210442
+        LD      IY,V_4204               ; 01C8  fd210442
         CALL    L255D                   ; 01CC  cd5d25
         LD      A,0A0H                  ; 01CF  3ea0
         CALL    CH_OUT                  ; 01D1  cddb34
@@ -161,46 +174,51 @@ L01D4:
         CALL    L026B                   ; 01D7  cd6b02
         LD      A,11                    ; 01DA  3e0b
         JP      nz,ERROR                ; 01DC  c25933
-        LD      HL,41C1H                ; 01DF  21c141
+        LD      HL,V_41C1               ; 01DF  21c141
         RES     0,(HL)                  ; 01E2  cb86
-        LD      HL,(418CH)              ; 01E4  2a8c41
+        LD      HL,(V_418C)             ; 01E4  2a8c41
         LD      A,H                     ; 01E7  7c
         OR      L                       ; 01E8  b5
-        LD      IY,(41F1H)              ; 01E9  fd2af141
+        LD      IY,(V_41F1)             ; 01E9  fd2af141
         CALL    nz,L255D                ; 01ED  c45d25
-        LD      HL,(4084H)              ; 01F0  2a8440
+        LD      HL,(V_4084)             ; 01F0  2a8440
         CALL    L35DB                   ; 01F3  cddb35
-        LD      HL,(41B5H)              ; 01F6  2ab541
+        LD      HL,(V_41B5)             ; 01F6  2ab541
         LD      A,H                     ; 01F9  7c
         OR      L                       ; 01FA  b5
         JR      z,L0202                 ; 01FB  2805
         CALL    L026A                   ; 01FD  cd6a02
         JR      L022C                   ; 0200  182a
 L0202:
-        LD      HL,(418CH)              ; 0202  2a8c41
+        LD      HL,(V_418C)             ; 0202  2a8c41
         LD      A,H                     ; 0205  7c
         OR      L                       ; 0206  b5
         JR      nz,L0221                ; 0207  2018
-        LD      A,(41C1H)               ; 0209  3ac141
+        LD      A,(V_41C1)              ; 0209  3ac141
         BIT     7,A                     ; 020C  cb7f
         LD      A,14                    ; 020E  3e0e
         JP      nz,ERROR                ; 0210  c25933
-        LD      HL,410BH                ; 0213  210b41
-        LD      (4190H),HL              ; 0216  229041
-        LD      BC,418AH                ; 0219  018a41
+        LD      HL,V_410B               ; 0213  210b41
+        LD      (V_4190),HL             ; 0216  229041
+        LD      BC,V_418A               ; 0219  018a41
         CALL    L143A                   ; 021C  cd3a14
         JR      L022C                   ; 021F  180b
 L0221:
-        LD      HL,(41BDH)              ; 0221  2abd41
-        LD      DE,(41BFH)              ; 0224  ed5bbf41
+        LD      HL,(V_41BD)             ; 0221  2abd41
+        LD      DE,(V_41BF)             ; 0224  ed5bbf41
         ADD     HL,DE                   ; 0228  19
-        LD      (41BDH),HL              ; 0229  22bd41
+        LD      (V_41BD),HL             ; 0229  22bd41
 L022C:
         CALL    L34B7                   ; 022C  cdb734
         JP      L0159                   ; 022F  c35901
-        DB      31H,0ADH,43H,0CDH,0CEH,35H,21H,6BH ; 0232 1.C..5!k
-        DB      34H,0CDH,0DBH,35H,0AFH,32H,0C1H,41H ; 023A 4..5.2.A
-        DB      32H,0C2H,41H,0C3H,59H,01H ; 0242 2.A.Y.
+        LD      SP,STACK_TOP            ; 0232  31ad43
+        CALL    CH_CRLF                 ; 0235  cdce35
+        LD      HL,MSG_RESTART          ; 0238  216b34
+        CALL    L35DB                   ; 023B  cddb35
+        XOR     A                       ; 023E  af
+        LD      (V_41C1),A              ; 023F  32c141
+        LD      (V_41C2),A              ; 0242  32c241
+        JP      L0159                   ; 0245  c35901
 
 ;=====================================================================
 ; WARMSTART / HAUPTSCHLEIFE (Direktmodus)
@@ -208,15 +226,15 @@ L022C:
 ; und wartet auf eine Eingabezeile. ERROR kehrt hierher zurueck.
 ;=====================================================================
 WARMSTART:
-        LD      A,(41C1H)               ; 0248  3ac141
+        LD      A,(V_41C1)              ; 0248  3ac141
         AND     4                       ; 024B  e604
-        LD      (41C1H),A               ; 024D  32c141
-        LD      HL,41FBH                ; 0250  21fb41
-        LD      (41F5H),HL              ; 0253  22f541
+        LD      (V_41C1),A              ; 024D  32c141
+        LD      HL,CHANTAB              ; 0250  21fb41
+        LD      (V_41F5),HL             ; 0253  22f541
         JR      L0261                   ; 0256  1809
 L0258:
         CALL    CH_NEWLINE              ; 0258  cdc335
-        LD      HL,3489H                ; 025B  218934
+        LD      HL,D3489                ; 025B  218934
         CALL    L35DB                   ; 025E  cddb35
 L0261:
         LD      HL,0                    ; 0261  210000
@@ -225,7 +243,7 @@ L0261:
 L026A:
         JP      (HL)                    ; 026A  e9
 L026B:
-        LD      HL,0345H                ; 026B  214503
+        LD      HL,RULE00               ; 026B  214503
         XOR     A                       ; 026E  af
         LD      B,A                     ; 026F  47
         JR      L0278                   ; 0270  1806
@@ -239,7 +257,7 @@ L026B:
 ; Bei Fehlschlag wird die naechste Alternative (Bit7=0) versucht.
 ;=====================================================================
 SYN_MATCH:
-        LD      A,(4000H)               ; 0272  3a0040
+        LD      A,(V_4000)              ; 0272  3a0040
         OR      A                       ; 0275  b7
         JR      nz,L0281                ; 0276  2009
 L0278:
@@ -256,7 +274,7 @@ L0281:
         JR      z,L02EF                 ; 0286  2867
         CP      10H                     ; 0288  fe10
         JR      nz,L0293                ; 028A  2007
-        LD      A,(4000H)               ; 028C  3a0040
+        LD      A,(V_4000)              ; 028C  3a0040
         CP      (HL)                    ; 028F  be
         INC     HL                      ; 0290  23
         JR      L02D1                   ; 0291  183e
@@ -267,10 +285,10 @@ L0293:
         INC     A                       ; 0298  3c
         PUSH    BC                      ; 0299  c5
         LD      B,A                     ; 029A  47
-        LD      A,(4002H)               ; 029B  3a0240
+        LD      A,(V_4002)              ; 029B  3a0240
         CP      B                       ; 029E  b8
         JR      nz,L02AF                ; 029F  200e
-        LD      DE,4003H                ; 02A1  110340
+        LD      DE,V_4003               ; 02A1  110340
 L02A4:
         LD      A,(DE)                  ; 02A4  1a
         CP      (HL)                    ; 02A5  be
@@ -330,7 +348,7 @@ L02DD:
         RET                             ; 02E9  c9
 L02EA:
         XOR     A                       ; 02EA  af
-        LD      (4000H),A               ; 02EB  320040
+        LD      (V_4000),A              ; 02EB  320040
         INC     B                       ; 02EE  04
 L02EF:
         BIT     6,C                     ; 02EF  cb71
@@ -354,14 +372,38 @@ L0303:
 ; Index = Argument eines RULE-Knotens / 2.
 ;=====================================================================
 RULETAB:
-        DB      45H,03H,0CEH,03H,0BEH,04H,0CH,06H ; 0307 E.......
-        DB      1BH,06H,87H,07H,8BH,08H,0CEH,0AH ; 030F ........
-        DB      47H,0BH,92H,0BH,21H,0CH,0A4H,0CH ; 0317 G...!...
-        DB      0E4H,0CH,0FAH,0CH,4EH,0DH,80H,0DH ; 031F ....N...
-        DB      0F6H,0CH,89H,0DH,17H,0EH,28H,0EH ; 0327 ......(.
-        DB      34H,0EH,11H,0EH,40H,0EH,58H,0EH ; 032F 4...@.X.
-        DB      0D5H,0EH,33H,07H,26H,07H,80H,0CH ; 0337 ..3.&...
-        DB      08H,0DH,1EH,09H,0FEH,09H ; 033F ......
+        DW      RULE00                  ; 0307  4503
+        DW      RULE02                  ; 0309  ce03
+        DW      RULE04                  ; 030B  be04
+        DW      RULE06                  ; 030D  0c06
+        DW      RULE08                  ; 030F  1b06
+        DW      RULE0A                  ; 0311  8707
+        DW      RULE0C                  ; 0313  8b08
+        DW      RULE0E                  ; 0315  ce0a
+        DW      RULE10                  ; 0317  470b
+        DW      RULE12                  ; 0319  920b
+        DW      RULE14                  ; 031B  210c
+        DW      RULE16                  ; 031D  a40c
+        DW      RULE18                  ; 031F  e40c
+        DW      RULE1A                  ; 0321  fa0c
+        DW      RULE1C                  ; 0323  4e0d
+        DW      RULE1E                  ; 0325  800d
+        DW      RULE20                  ; 0327  f60c
+        DW      RULE22                  ; 0329  890d
+        DW      RULE24                  ; 032B  170e
+        DW      RULE26                  ; 032D  280e
+        DW      RULE28                  ; 032F  340e
+        DW      RULE2A                  ; 0331  110e
+        DW      RULE2C                  ; 0333  400e
+        DW      RULE2E                  ; 0335  580e
+        DW      RULE30                  ; 0337  d50e
+        DW      RULE32                  ; 0339  3307
+        DW      RULE34                  ; 033B  2607
+        DW      RULE36                  ; 033D  800c
+        DW      RULE38                  ; 033F  080d
+        DW      RULE3A                  ; 0341  1e09
+        DW      RULE3C                  ; 0343  fe09
+RULE00:
         DB      38H,02H,00H             ; 0345 RULE 02
         DB      58H,36H,34H             ; 0348 RULE 36 -> L037E
         DB      70H,47H,4AH,00H         ; 034B TOK 47 -> L0397
@@ -379,37 +421,37 @@ RULETAB:
         DB      30H,46H,0F4H            ; 0377 TOK 46 next 036D
         DB      0F0H,47H,34H,00H        ; 037A TOK 47 -> L03B0 last
 L037E:
-        LD      HL,(4088H)              ; 037E  2a8840
+        LD      HL,(ED_RPTR)            ; 037E  2a8840
         LD      A,(HL)                  ; 0381  7e
         CP      20H                     ; 0382  fe20
         JR      nz,L0387                ; 0384  2001
         INC     HL                      ; 0386  23
 L0387:
-        LD      (4084H),HL              ; 0387  228440
-        LD      HL,(4003H)              ; 038A  2a0340
-        LD      (418CH),HL              ; 038D  228c41
+        LD      (V_4084),HL             ; 0387  228440
+        LD      HL,(V_4003)             ; 038A  2a0340
+        LD      (V_418C),HL             ; 038D  228c41
         RET                             ; 0390  c9
 L0391:
-        LD      HL,(4003H)              ; 0391  2a0340
+        LD      HL,(V_4003)             ; 0391  2a0340
         JP      L221E                   ; 0394  c31e22
 L0397:
-        LD      HL,41C1H                ; 0397  21c141
+        LD      HL,V_41C1               ; 0397  21c141
         RES     2,(HL)                  ; 039A  cb96
-        LD      HL,(4084H)              ; 039C  2a8440
+        LD      HL,(V_4084)             ; 039C  2a8440
         LD      (HL),1EH                ; 039F  361e
-        LD      HL,(418CH)              ; 03A1  2a8c41
-        LD      (41B9H),HL              ; 03A4  22b941
+        LD      HL,(V_418C)             ; 03A1  2a8c41
+        LD      (V_41B9),HL             ; 03A4  22b941
         LD      A,H                     ; 03A7  7c
         OR      L                       ; 03A8  b5
         RET     z                       ; 03A9  c8
-        LD      HL,41C2H                ; 03AA  21c241
+        LD      HL,V_41C2               ; 03AA  21c241
         SET     2,(HL)                  ; 03AD  cbd6
         RET                             ; 03AF  c9
 L03B0:
-        LD      HL,41C1H                ; 03B0  21c141
+        LD      HL,V_41C1               ; 03B0  21c141
         RES     2,(HL)                  ; 03B3  cb96
-        LD      HL,(418CH)              ; 03B5  2a8c41
-        LD      DE,(41BDH)              ; 03B8  ed5bbd41
+        LD      HL,(V_418C)             ; 03B5  2a8c41
+        LD      DE,(V_41BD)             ; 03B8  ed5bbd41
         AND     A                       ; 03BC  a7
         SBC     HL,DE                   ; 03BD  ed52
         CALL    nz,L046D                ; 03BF  c46d04
@@ -427,6 +469,7 @@ S_REM:
         CP      1EH                     ; 03C8  fe1e
         JR      nz,S_REM                ; 03CA  20f9
         JR      L03C2                   ; 03CC  18f4
+RULE02:
         DB      6AH,4EH,45H,57H,60H,5CH ; 03CE KW "NEW" -> S_NEW next 042F
         DB      6AH,4DH,45H,4DH,5FH,56H ; 03D4 KW "MEM" -> S_MEM next 042F
         DB      6CH,4EH,4FH,4DH,45H,4DH,5BH,4EH ; 03DA KW "NOMEM" -> S_NOMEM next 042F
@@ -445,7 +488,7 @@ S_REM:
         DB      0D8H,36H,5AH            ; 042C RULE 36 -> L0488 last
         DB      0B0H,47H,00H            ; 042F TOK 47 last
 S_NEW:
-        LD      HL,159AH                ; 0432  219a15
+        LD      HL,L159A                ; 0432  219a15
         JR      L0466                   ; 0435  182f
 S_MEM:
         LD      A,1                     ; 0437  3e01
@@ -453,56 +496,56 @@ S_MEM:
 S_NOMEM:
         XOR     A                       ; 043B  af
 L043C:
-        LD      (41B4H),A               ; 043C  32b441
+        LD      (V_41B4),A              ; 043C  32b441
         RET                             ; 043F  c9
 S_DELETE:
-        LD      HL,1401H                ; 0440  210114
+        LD      HL,L1401                ; 0440  210114
         JR      L046A                   ; 0443  1825
 S_BYE:
-        LD      HL,1414H                ; 0445  211414
+        LD      HL,L1414                ; 0445  211414
         JR      L046A                   ; 0448  1820
 S_LIST:
-        LD      HL,1343H                ; 044A  214313
+        LD      HL,L1343                ; 044A  214313
         JR      L0466                   ; 044D  1817
 S_NUMBER:
-        LD      HL,13E6H                ; 044F  21e613
+        LD      HL,L13E6                ; 044F  21e613
         JR      L0466                   ; 0452  1812
 S_RENUMBER:
-        LD      HL,15C0H                ; 0454  21c015
+        LD      HL,L15C0                ; 0454  21c015
         JR      L046A                   ; 0457  1811
 S_RUN:
-        LD      HL,1417H                ; 0459  211714
+        LD      HL,L1417                ; 0459  211714
         JR      L046A                   ; 045C  180c
 S_LOAD:
-        LD      HL,13D3H                ; 045E  21d313
+        LD      HL,L13D3                ; 045E  21d313
         JR      L046A                   ; 0461  1807
 S_SAVE:
-        LD      HL,13B6H                ; 0463  21b613
+        LD      HL,L13B6                ; 0463  21b613
 L0466:
-        LD      (41B5H),HL              ; 0466  22b541
+        LD      (V_41B5),HL             ; 0466  22b541
         RET                             ; 0469  c9
 L046A:
-        LD      (41B5H),HL              ; 046A  22b541
+        LD      (V_41B5),HL             ; 046A  22b541
 L046D:
         LD      HL,0                    ; 046D  210000
-        LD      (41BDH),HL              ; 0470  22bd41
-        LD      (41BFH),HL              ; 0473  22bf41
+        LD      (V_41BD),HL             ; 0470  22bd41
+        LD      (V_41BF),HL             ; 0473  22bf41
         RET                             ; 0476  c9
 L0477:
-        LD      HL,(4003H)              ; 0477  2a0340
+        LD      HL,(V_4003)             ; 0477  2a0340
         JR      L047F                   ; 047A  1803
 L047C:
         CALL    L0483                   ; 047C  cd8304
 L047F:
-        LD      (41B9H),HL              ; 047F  22b941
+        LD      (V_41B9),HL             ; 047F  22b941
         RET                             ; 0482  c9
 L0483:
         LD      HL,0                    ; 0483  210000
         JR      L048B                   ; 0486  1803
 L0488:
-        LD      HL,(4003H)              ; 0488  2a0340
+        LD      HL,(V_4003)             ; 0488  2a0340
 L048B:
-        LD      (41BBH),HL              ; 048B  22bb41
+        LD      (V_41BB),HL             ; 048B  22bb41
         RET                             ; 048E  c9
         DB      0D0H,86H,1AH            ; 048F TOK 86 -> L04AB last
         DB      90H,41H                 ; 0492 TOK 41 last
@@ -515,7 +558,7 @@ L048B:
         DB      90H,62H                 ; 04A5 TOK 62 last
         DB      0F8H,0EH,10H,00H        ; 04A7 RULE 0E -> L04B9 last
 L04AB:
-        LD      HL,(4003H)              ; 04AB  2a0340
+        LD      HL,(V_4003)             ; 04AB  2a0340
         CALL    L221E                   ; 04AE  cd1e22
         LD      A,3CH                   ; 04B1  3e3c
         JP      EMIT_BYTE               ; 04B3  c3bc23
@@ -524,6 +567,7 @@ L04B6:
 L04B9:
         LD      A,3EH                   ; 04B9  3e3e
         JP      EMIT_BYTE               ; 04BB  c3bc23
+RULE04:
         DB      2AH,44H,45H,46H,0CDH    ; 04BE KW "DEF" next 048F
         DB      6AH,46H,4FH,52H,0ACH,18H ; 04C3 KW "FOR" -> S_FOR next 04E0
         DB      2BH,4EH,45H,58H,54H,2CH ; 04C9 KW "NEXT" next 04FA
@@ -565,44 +609,44 @@ L04B9:
         DB      30H,45H,0ECH            ; 0550 TOK 45 next 053E
         DB      0E0H,14H,00H            ; 0553 EPS -> L0568 last
 S_DATA:
-        LD      HL,41C1H                ; 0556  21c141
+        LD      HL,V_41C1               ; 0556  21c141
         SET     3,(HL)                  ; 0559  cbde
         LD      HL,0                    ; 055B  210000
         JP      L23E0                   ; 055E  c3e023
 L0561:
-        LD      HL,410DH                ; 0561  210d41
+        LD      HL,V_410D               ; 0561  210d41
         INC     (HL)                    ; 0564  34
         JP      L23EE                   ; 0565  c3ee23
 L0568:
-        LD      IX,410CH                ; 0568  dd210c41
+        LD      IX,V_410C               ; 0568  dd210c41
         RET                             ; 056C  c9
 L056D:
-        LD      HL,41C2H                ; 056D  21c241
+        LD      HL,V_41C2               ; 056D  21c241
         SET     5,(HL)                  ; 0570  cbee
         RET                             ; 0572  c9
 S_FOR:
         LD      A,80H                   ; 0573  3e80
         CALL    EMIT_BYTE               ; 0575  cdbc23
         LD      (IX+3),0                ; 0578  dd360300
-        LD      IX,4113H                ; 057C  dd211341
+        LD      IX,V_4113               ; 057C  dd211341
         RET                             ; 0580  c9
 S_TO:
         CALL    L254E                   ; 0581  cd4e25
         INC     A                       ; 0584  3c
-        LD      (410FH),A               ; 0585  320f41
+        LD      (V_410F),A              ; 0585  320f41
 S_THEN:
         LD      A,0FFH                  ; 0588  3eff
         JP      EMIT_BYTE               ; 058A  c3bc23
 S_STEP:
         CALL    S_THEN                  ; 058D  cd8805
         CALL    L254E                   ; 0590  cd4e25
-        LD      (4110H),A               ; 0593  321041
+        LD      (V_4110),A              ; 0593  321041
         RET                             ; 0596  c9
 L0597:
         CALL    S_THEN                  ; 0597  cd8805
 L059A:
         CALL    L2430                   ; 059A  cd3024
-        LD      (410DH),HL              ; 059D  220d41
+        LD      (V_410D),HL             ; 059D  220d41
         JR      L05AD                   ; 05A0  180b
 L05A2:
         LD      A,82H                   ; 05A2  3e82
@@ -610,14 +654,14 @@ L05A2:
         LD      HL,0                    ; 05A7  210000
         CALL    L23E0                   ; 05AA  cde023
 L05AD:
-        LD      HL,41C1H                ; 05AD  21c141
+        LD      HL,V_41C1               ; 05AD  21c141
         SET     7,(HL)                  ; 05B0  cbfe
         RET                             ; 05B2  c9
 S_ON:
         LD      HL,84H                  ; 05B3  218400
         JP      L23E0                   ; 05B6  c3e023
 L05B9:
-        LD      HL,410DH                ; 05B9  210d41
+        LD      HL,V_410D               ; 05B9  210d41
         INC     (HL)                    ; 05BC  34
         LD      HL,0FFFFH               ; 05BD  21ffff
         JP      L23E0                   ; 05C0  c3e023
@@ -627,7 +671,7 @@ L05C3:
 L05C7:
         LD      A,8CH                   ; 05C7  3e8c
 L05C9:
-        LD      (410CH),A               ; 05C9  320c41
+        LD      (V_410C),A              ; 05C9  320c41
         RET                             ; 05CC  c9
 S_IF:
         INC     IX                      ; 05CD  dd23
@@ -635,43 +679,45 @@ S_IF:
         XOR     A                       ; 05D1  af
         JP      EMIT_BYTE               ; 05D2  c3bc23
 L05D5:
-        LD      A,(4001H)               ; 05D5  3a0140
+        LD      A,(V_4001)              ; 05D5  3a0140
         JR      L05DC                   ; 05D8  1802
 L05DA:
         LD      A,2                     ; 05DA  3e02
 L05DC:
-        LD      (410DH),A               ; 05DC  320d41
+        LD      (V_410D),A              ; 05DC  320d41
         CALL    L05E4                   ; 05DF  cde405
         JR      S_THEN                  ; 05E2  18a4
 L05E4:
         CALL    L0D6B                   ; 05E4  cd6b0d
         JP      L2430                   ; 05E7  c33024
 L05EA:
-        LD      A,(4001H)               ; 05EA  3a0140
+        LD      A,(V_4001)              ; 05EA  3a0140
         JR      L05F1                   ; 05ED  1802
 L05EF:
         LD      A,2                     ; 05EF  3e02
 L05F1:
-        LD      (410DH),A               ; 05F1  320d41
+        LD      (V_410D),A              ; 05F1  320d41
 L05F4:
         CALL    L2459                   ; 05F4  cd5924
         JP      L240A                   ; 05F7  c30a24
 L05FA:
         LD      A,5                     ; 05FA  3e05
-        LD      (410DH),A               ; 05FC  320d41
+        LD      (V_410D),A              ; 05FC  320d41
         RET                             ; 05FF  c9
 L0600:
         LD      A,0                     ; 0600  3e00
         JP      L23EB                   ; 0602  c3eb23
 S_ELSE:
         CALL    L254E                   ; 0605  cd4e25
-        LD      (410EH),A               ; 0608  320e41
+        LD      (V_410E),A              ; 0608  320e41
         RET                             ; 060B  c9
+RULE06:
         DB      38H,08H,00H             ; 060C RULE 08
         DB      38H,0AH,00H             ; 060F RULE 0A
         DB      38H,0CH,00H             ; 0612 RULE 0C
         DB      38H,3AH,00H             ; 0615 RULE 3A
         DB      0B8H,3CH,00H            ; 0618 RULE 3C last
+RULE08:
         DB      2CH,50H,52H,49H,4EH,54H,3BH ; 061B KW "PRINT" next 065C
         DB      6CH,49H,4EH,50H,55H,54H,0A8H,59H ; 0622 KW "INPUT" -> S_INPUT next 0682
         DB      6BH,45H,44H,49H,54H,0A7H,52H ; 062A KW "EDIT" -> S_EDIT next 0682
@@ -727,23 +773,23 @@ L06CC:
         LD      A,68H                   ; 06CC  3e68
         JR      L06C4                   ; 06CE  18f4
 S_INPUT:
-        LD      HL,41C2H                ; 06D0  21c241
+        LD      HL,V_41C2               ; 06D0  21c241
         RES     3,(HL)                  ; 06D3  cb9e
         RET                             ; 06D5  c9
 S_EDIT:
-        LD      HL,41C2H                ; 06D6  21c241
+        LD      HL,V_41C2               ; 06D6  21c241
         SET     3,(HL)                  ; 06D9  cbde
         RET                             ; 06DB  c9
 L06DC:
         LD      A,76H                   ; 06DC  3e76
-        LD      HL,41C2H                ; 06DE  21c241
+        LD      HL,V_41C2               ; 06DE  21c241
         BIT     3,(HL)                  ; 06E1  cb5e
         JR      z,L06C9                 ; 06E3  28e4
         LD      A,7AH                   ; 06E5  3e7a
         JR      L06C9                   ; 06E7  18e0
 L06E9:
         LD      A,78H                   ; 06E9  3e78
-        LD      HL,41C2H                ; 06EB  21c241
+        LD      HL,V_41C2               ; 06EB  21c241
         BIT     3,(HL)                  ; 06EE  cb5e
         JR      z,L06C9                 ; 06F0  28d7
         LD      A,7CH                   ; 06F2  3e7c
@@ -781,11 +827,13 @@ S_CLOSE:
         LD      A,0B0H                  ; 0721  3eb0
 L0723:
         JP      EMIT_BYTE               ; 0723  c3bc23
+RULE34:
         DB      78H,36H,33H,00H         ; 0726 RULE 36 -> L075B
         DB      0F0H,82H,02H,00H        ; 072A TOK 82 -> L072E last
 L072E:
-        LD      HL,(4003H)              ; 072E  2a0340
+        LD      HL,(V_4003)             ; 072E  2a0340
         JR      L0773                   ; 0731  1840
+RULE32:
         DB      78H,36H,23H,00H         ; 0733 RULE 36 -> L0758
         DB      70H,82H,2AH,08H         ; 0737 TOK 82 -> L0763 next 0742
         DB      98H,06H                 ; 073B RULE 06 last
@@ -802,18 +850,18 @@ L0755:
 L0758:
         CALL    L0782                   ; 0758  cd8207
 L075B:
-        LD      HL,(4003H)              ; 075B  2a0340
+        LD      HL,(V_4003)             ; 075B  2a0340
         CALL    L21FE                   ; 075E  cdfe21
         JR      L077C                   ; 0761  1819
 L0763:
-        LD      HL,(4003H)              ; 0763  2a0340
-        LD      (41C7H),HL              ; 0766  22c741
+        LD      HL,(V_4003)             ; 0763  2a0340
+        LD      (V_41C7),HL             ; 0766  22c741
         RET                             ; 0769  c9
 L076A:
         JP      L0D28                   ; 076A  c3280d
 L076D:
         CALL    L0782                   ; 076D  cd8207
-        LD      HL,(41C7H)              ; 0770  2ac741
+        LD      HL,(V_41C7)             ; 0770  2ac741
 L0773:
         LD      A,L                     ; 0773  7d
         AND     0E0H                    ; 0774  e6e0
@@ -827,6 +875,7 @@ L077F:
 L0782:
         LD      A,86H                   ; 0782  3e86
         JP      EMIT_BYTE               ; 0784  c3bc23
+RULE0A:
         DB      6BH,47H,4FH,54H,4FH,8DH,37H ; 0787 KW "GOTO" -> S_GOTO next 07C4
         DB      6CH,47H,4FH,53H,55H,42H,8AH,2FH ; 078E KW "GOSUB" -> S_GOSUB next 07C4
         DB      2AH,4CH,45H,54H,33H     ; 0796 KW "LET" next 07CD
@@ -888,11 +937,11 @@ L082F:
         LD      A,92H                   ; 082F  3e92
         JP      EMIT_BYTE               ; 0831  c3bc23
 L0834:
-        LD      HL,41C1H                ; 0834  21c141
+        LD      HL,V_41C1               ; 0834  21c141
         BIT     5,(HL)                  ; 0837  cb6e
         RES     5,(HL)                  ; 0839  cbae
         JR      z,S_STOP                ; 083B  2807
-        LD      IY,(41F7H)              ; 083D  fd2af741
+        LD      IY,(V_41F7)             ; 083D  fd2af741
         CALL    L35AB                   ; 0841  cdab35
 S_STOP:
         LD      A,90H                   ; 0844  3e90
@@ -902,7 +951,7 @@ S_RETURN:
         CALL    EMIT_BYTE               ; 084B  cdbc23
         JP      L05AD                   ; 084E  c3ad05
 L0851:
-        LD      HL,(4003H)              ; 0851  2a0340
+        LD      HL,(V_4003)             ; 0851  2a0340
         CALL    L2143                   ; 0854  cd4321
         JP      L240A                   ; 0857  c30a24
 L085A:
@@ -910,24 +959,25 @@ L085A:
         JP      L23EB                   ; 085C  c3eb23
 L085F:
         LD      HL,0                    ; 085F  210000
-        LD      (41CEH),HL              ; 0862  22ce41
-        LD      HL,(4003H)              ; 0865  2a0340
-        LD      (41D0H),HL              ; 0868  22d041
+        LD      (V_41CE),HL             ; 0862  22ce41
+        LD      HL,(V_4003)             ; 0865  2a0340
+        LD      (V_41D0),HL             ; 0868  22d041
         LD      A,6                     ; 086B  3e06
-        LD      (41CBH),A               ; 086D  32cb41
+        LD      (V_41CB),A              ; 086D  32cb41
         RET                             ; 0870  c9
 L0871:
-        LD      HL,(4003H)              ; 0871  2a0340
-        LD      (41CCH),HL              ; 0874  22cc41
+        LD      HL,(V_4003)             ; 0871  2a0340
+        LD      (V_41CC),HL             ; 0874  22cc41
         RET                             ; 0877  c9
 L0878:
-        LD      HL,(4003H)              ; 0878  2a0340
-        LD      (41D2H),HL              ; 087B  22d241
-        LD      HL,41CBH                ; 087E  21cb41
+        LD      HL,(V_4003)             ; 0878  2a0340
+        LD      (V_41D2),HL             ; 087B  22d241
+        LD      HL,V_41CB               ; 087E  21cb41
         LD      BC,9                    ; 0881  010900
         CALL    L20A1                   ; 0884  cda120
         EX      DE,HL                   ; 0887  eb
         JP      L23E0                   ; 0888  c3e023
+RULE0C:
         DB      2AH,44H,49H,4DH,26H     ; 088B KW "DIM" next 08B5
         DB      6BH,43H,41H,4CH,4CH,65H,3FH ; 0890 KW "CALL" -> S_CALL next 08D5
         DB      6EH,4FH,55H,54H,43H,48H,41H,52H,5FH,35H ; 0897 KW "OUTCHAR" -> S_OUTCHAR next 08D5
@@ -950,7 +1000,7 @@ L0878:
         DB      0D0H,45H,0DH            ; 08DB TOK 45 -> L08EA last
         DB      0F8H,0EH,35H,00H        ; 08DE RULE 0E -> L0915 last
 L08E2:
-        LD      HL,(4003H)              ; 08E2  2a0340
+        LD      HL,(V_4003)             ; 08E2  2a0340
         SET     4,L                     ; 08E5  cbe5
         JP      L0CEF                   ; 08E7  c3ef0c
 L08EA:
@@ -979,12 +1029,13 @@ S_OUT:
 L090C:
         JP      L0C10                   ; 090C  c3100c
 L090F:
-        LD      A,(4196H)               ; 090F  3a9641
+        LD      A,(V_4196)              ; 090F  3a9641
         JP      EMIT_BYTE               ; 0912  c3bc23
 L0915:
-        LD      A,(4196H)               ; 0915  3a9641
+        LD      A,(V_4196)              ; 0915  3a9641
         CALL    L23EB                   ; 0918  cdeb23
         JP      L24B9                   ; 091B  c3b924
+RULE3A:
         DB      6BH,50H,4CH,4FH,54H,7CH,55H ; 091E KW "PLOT" -> S_PLOT next 0979
         DB      6AH,44H,4FH,54H,7AH,4FH ; 0925 KW "DOT" -> S_DOT next 0979
         DB      6AH,47H,4CH,53H,78H,36H ; 092B KW "GLS" -> S_GLS next 0966
@@ -1052,7 +1103,7 @@ L09C5:
 L09C8:
         JP      L05F4                   ; 09C8  c3f405
 L09CB:
-        LD      A,(4196H)               ; 09CB  3a9641
+        LD      A,(V_4196)              ; 09CB  3a9641
         CALL    L23EB                   ; 09CE  cdeb23
 L09D1:
         CALL    L23EE                   ; 09D1  cdee23
@@ -1061,22 +1112,23 @@ L09D4:
 L09D7:
         JP      L24B9                   ; 09D7  c3b924
 L09DA:
-        LD      A,(4196H)               ; 09DA  3a9641
+        LD      A,(V_4196)              ; 09DA  3a9641
         CALL    L23EB                   ; 09DD  cdeb23
         JR      L09D7                   ; 09E0  18f5
 L09E2:
-        LD      A,(4196H)               ; 09E2  3a9641
+        LD      A,(V_4196)              ; 09E2  3a9641
         CALL    L23EB                   ; 09E5  cdeb23
         JR      L09D4                   ; 09E8  18ea
 L09EA:
-        LD      A,(4196H)               ; 09EA  3a9641
+        LD      A,(V_4196)              ; 09EA  3a9641
         CALL    L23EB                   ; 09ED  cdeb23
         CALL    L23EE                   ; 09F0  cdee23
         JR      L09D1                   ; 09F3  18dc
 L09F5:
-        LD      A,(4196H)               ; 09F5  3a9641
+        LD      A,(V_4196)              ; 09F5  3a9641
         CALL    L23EB                   ; 09F8  cdeb23
         JP      L24B9                   ; 09FB  c3b924
+RULE3C:
         DB      6AH,47H,49H,4EH,7EH,00H ; 09FE KW "GIN" -> S_GIN
         DB      6AH,4FH,46H,46H,7CH,00H ; 0A04 KW "OFF" -> S_OFF
         DB      6AH,43H,4FH,4CH,7AH,00H ; 0A0A KW "COL" -> S_COL
@@ -1155,10 +1207,11 @@ L0ABC:
 L0ABF:
         JP      L09E2                   ; 0ABF  c3e209
 L0AC2:
-        LD      A,(4196H)               ; 0AC2  3a9641
+        LD      A,(V_4196)              ; 0AC2  3a9641
         CALL    L23EB                   ; 0AC5  cdeb23
         CALL    L23EE                   ; 0AC8  cdee23
         JP      L09D1                   ; 0ACB  c3d109
+RULE0E:
         DB      28H,2BH,08H             ; 0ACE KW "+" next 0AD8
         DB      68H,2DH,28H,04H         ; 0AD1 KW "-" -> L0AFB next 0AD8
         DB      50H,65H,28H             ; 0AD5 TOK 65 -> L0AFF
@@ -1182,7 +1235,7 @@ L0AFF:
 L0B03:
         LD      HL,0                    ; 0B03  210000
 L0B06:
-        LD      (4198H),HL              ; 0B06  229841
+        LD      (V_4198),HL             ; 0B06  229841
         CALL    L24A6                   ; 0B09  cda624
         JP      L248D                   ; 0B0C  c38d24
 L0B0F:
@@ -1191,14 +1244,14 @@ L0B0F:
         CALL    L2407                   ; 0B13  cd0724
         JP      L24B9                   ; 0B16  c3b924
 L0B19:
-        LD      A,(4001H)               ; 0B19  3a0140
+        LD      A,(V_4001)              ; 0B19  3a0140
 L0B1C:
         CALL    L23FB                   ; 0B1C  cdfb23
-        LD      (4198H),HL              ; 0B1F  229841
+        LD      (V_4198),HL             ; 0B1F  229841
 L0B22:
-        LD      A,(4199H)               ; 0B22  3a9941
+        LD      A,(V_4199)              ; 0B22  3a9941
         LD      B,A                     ; 0B25  47
-        LD      A,(4197H)               ; 0B26  3a9741
+        LD      A,(V_4197)              ; 0B26  3a9741
         CP      B                       ; 0B29  b8
         JP      c,L24A6                 ; 0B2A  daa624
         OR      B                       ; 0B2D  b0
@@ -1216,6 +1269,7 @@ L0B37:
         RET     z                       ; 0B41  c8
         LD      A,1EH                   ; 0B42  3e1e
         JP      L23DD                   ; 0B44  c3dd23
+RULE10:
         DB      6AH,54H,4FH,50H,26H,00H ; 0B47 KW "TOP" -> S_TOP
         DB      6BH,53H,49H,5AH,45H,2CH,00H ; 0B4D KW "SIZE" -> S_SIZE
         DB      6DH,49H,4EH,43H,48H,41H,52H,2BH,00H ; 0B54 KW "INCHAR" -> S_INCHAR
@@ -1245,6 +1299,7 @@ S_ERRN:
 S_ERLN:
         LD      A,0B6H                  ; 0B8E  3eb6
         JR      L0B73                   ; 0B90  18e1
+RULE12:
         DB      6AH,41H,42H,53H,58H,3CH ; 0B92 KW "ABS" -> S_ABS next 0BD3
         DB      6AH,41H,54H,4EH,56H,36H ; 0B98 KW "ATN" -> S_ATN next 0BD3
         DB      6AH,43H,4FH,53H,54H,30H ; 0B9E KW "COS" -> S_COS next 0BD3
@@ -1262,7 +1317,7 @@ S_ERLN:
         DB      98H,0EH                 ; 0BD5 RULE 0E last
         DB      0F0H,42H,3CH,00H        ; 0BD7 TOK 42 -> L0C15 last
 L0BDB:
-        LD      HL,(4003H)              ; 0BDB  2a0340
+        LD      HL,(V_4003)             ; 0BDB  2a0340
         CALL    L21F9                   ; 0BDE  cdf921
         CALL    L240A                   ; 0BE1  cd0a24
         JP      L0B03                   ; 0BE4  c3030b
@@ -1300,11 +1355,12 @@ L0C10:
         LD      H,0                     ; 0C10  2600
         JP      L0B06                   ; 0C12  c3060b
 L0C15:
-        LD      A,(4196H)               ; 0C15  3a9641
+        LD      A,(V_4196)              ; 0C15  3a9641
         CALL    EMIT_BYTE               ; 0C18  cdbc23
 L0C1B:
         CALL    L24B9                   ; 0C1B  cdb924
         JP      L2407                   ; 0C1E  c30724
+RULE14:
         DB      6AH,4CH,45H,4EH,31H,20H ; 0C21 KW "LEN" -> S_LEN next 0C46
         DB      6AH,41H,53H,43H,2FH,1AH ; 0C27 KW "ASC" -> S_ASC next 0C46
         DB      6AH,56H,41H,4CH,2DH,14H ; 0C2D KW "VAL" -> S_VAL next 0C46
@@ -1329,7 +1385,7 @@ S_VAL:
 L0C62:
         LD      HL,0FFFFH               ; 0C62  21ffff
         CALL    L2450                   ; 0C65  cd5024
-        LD      A,(4196H)               ; 0C68  3a9641
+        LD      A,(V_4196)              ; 0C68  3a9641
         CALL    L23DD                   ; 0C6B  cddd23
         JP      L24B9                   ; 0C6E  c3b924
 S_PEEK:
@@ -1344,40 +1400,42 @@ L0C7B:
         JP      L0C10                   ; 0C7B  c3100c
 L0C7E:
         JR      L0C15                   ; 0C7E  1895
+RULE36:
         DB      70H,89H,1DH,00H         ; 0C80 TOK 89 -> L0C9F
         DB      0F0H,8EH,02H,00H        ; 0C84 TOK 8E -> L0C88 last
 L0C88:
-        LD      DE,4003H                ; 0C88  110340
+        LD      DE,V_4003               ; 0C88  110340
         CALL    FAC_LOAD                ; 0C8B  cd9f26
         CALL    FP_TO_INT16             ; 0C8E  cdb732
         LD      HL,(FAC)                ; 0C91  2ae242
-        LD      (4003H),HL              ; 0C94  220340
+        LD      (V_4003),HL             ; 0C94  220340
 L0C97:
         BIT     7,H                     ; 0C97  cb7c
         RET     z                       ; 0C99  c8
         LD      A,1FH                   ; 0C9A  3e1f
         JP      ERROR                   ; 0C9C  c35933
 L0C9F:
-        LD      HL,(4003H)              ; 0C9F  2a0340
+        LD      HL,(V_4003)             ; 0C9F  2a0340
         JR      L0C97                   ; 0CA2  18f3
+RULE16:
         DB      70H,89H,0AH,00H         ; 0CA4 TOK 89 -> L0CB0
         DB      70H,8EH,1CH,00H         ; 0CA8 TOK 8E -> L0CC6
         DB      0F0H,8AH,18H,00H        ; 0CAC TOK 8A -> L0CC6 last
 L0CB0:
         CALL    L0CDC                   ; 0CB0  cddc0c
         JR      z,L0CC2                 ; 0CB3  280d
-        LD      DE,(4003H)              ; 0CB5  ed5b0340
+        LD      DE,(V_4003)             ; 0CB5  ed5b0340
         LD      HL,0                    ; 0CB9  210000
         AND     A                       ; 0CBC  a7
         SBC     HL,DE                   ; 0CBD  ed52
-        LD      (4003H),HL              ; 0CBF  220340
+        LD      (V_4003),HL             ; 0CBF  220340
 L0CC2:
         LD      A,89H                   ; 0CC2  3e89
         JR      L0CD6                   ; 0CC4  1810
 L0CC6:
         CALL    L0CDC                   ; 0CC6  cddc0c
         JR      z,L0CD4                 ; 0CC9  2809
-        LD      HL,4006H                ; 0CCB  210640
+        LD      HL,V_4006               ; 0CCB  210640
         BIT     6,(HL)                  ; 0CCE  cb76
         JR      z,L0CD4                 ; 0CD0  2802
         SET     7,(HL)                  ; 0CD2  cbfe
@@ -1387,39 +1445,43 @@ L0CD6:
         CALL    L2185                   ; 0CD6  cd8521
         JP      L240A                   ; 0CD9  c30a24
 L0CDC:
-        LD      HL,41C2H                ; 0CDC  21c241
+        LD      HL,V_41C2               ; 0CDC  21c241
         BIT     5,(HL)                  ; 0CDF  cb6e
         RES     5,(HL)                  ; 0CE1  cbae
         RET                             ; 0CE3  c9
+RULE18:
         DB      70H,81H,06H,00H         ; 0CE4 TOK 81 -> L0CEC
         DB      0F0H,82H,02H,00H        ; 0CE8 TOK 82 -> L0CEC last
 L0CEC:
-        LD      HL,(4003H)              ; 0CEC  2a0340
+        LD      HL,(V_4003)             ; 0CEC  2a0340
 L0CEF:
         CALL    L2143                   ; 0CEF  cd4321
         EX      DE,HL                   ; 0CF2  eb
         JP      L240A                   ; 0CF3  c30a24
+RULE20:
         DB      0F0H,83H,1FH,08H        ; 0CF6 TOK 83 -> L0D17 next 0D01 last
+RULE1A:
         DB      70H,81H,1BH,04H         ; 0CFA TOK 81 -> L0D17 next 0D01
         DB      0D0H,82H,17H            ; 0CFE TOK 82 -> L0D17 last
         DB      70H,41H,1BH,04H         ; 0D01 TOK 41 -> L0D1E next 0D08
         DB      0E0H,22H,00H            ; 0D05 EPS -> L0D28 last
+RULE38:
         DB      98H,0EH                 ; 0D08 RULE 0E last
         DB      70H,42H,24H,00H         ; 0D0A TOK 42 -> L0D30
         DB      0D0H,45H,1DH            ; 0D0E TOK 45 -> L0D2D last
         DB      98H,0EH                 ; 0D11 RULE 0E last
         DB      0F0H,42H,32H,00H        ; 0D13 TOK 42 -> L0D47 last
 L0D17:
-        LD      HL,(4003H)              ; 0D17  2a0340
-        LD      (41C7H),HL              ; 0D1A  22c741
+        LD      HL,(V_4003)             ; 0D17  2a0340
+        LD      (V_41C7),HL             ; 0D1A  22c741
         RET                             ; 0D1D  c9
 L0D1E:
         CALL    L0B03                   ; 0D1E  cd030b
-        LD      HL,(41C7H)              ; 0D21  2ac741
+        LD      HL,(V_41C7)             ; 0D21  2ac741
         SET     4,L                     ; 0D24  cbe5
         JR      L0CEF                   ; 0D26  18c7
 L0D28:
-        LD      HL,(41C7H)              ; 0D28  2ac741
+        LD      HL,(V_41C7)             ; 0D28  2ac741
         JR      L0CEF                   ; 0D2B  18c2
 L0D2D:
         JP      L05F4                   ; 0D2D  c3f405
@@ -1437,6 +1499,7 @@ L0D47:
         LD      A,24H                   ; 0D47  3e24
         CALL    L23EB                   ; 0D49  cdeb23
         JR      L0D35                   ; 0D4C  18e7
+RULE1C:
         DB      38H,1EH,06H             ; 0D4E RULE 1E next 0D56
         DB      38H,20H,03H             ; 0D51 RULE 20 next 0D56
         DB      98H,22H                 ; 0D54 RULE 22 last
@@ -1448,7 +1511,7 @@ L0D47:
         DB      30H,64H,0F4H            ; 0D66 TOK 64 next 0D5C
         DB      0A0H,00H                ; 0D69 EPS last
 L0D6B:
-        LD      HL,34A5H                ; 0D6B  21a534
+        LD      HL,D34A5                ; 0D6B  21a534
         CALL    L2450                   ; 0D6E  cd5024
         AND     A                       ; 0D71  a7
         SBC     HL,DE                   ; 0D72  ed52
@@ -1459,10 +1522,12 @@ L0D6B:
 L0D7B:
         LD      A,5EH                   ; 0D7B  3e5e
         JP      L23EB                   ; 0D7D  c3eb23
+RULE1E:
         DB      0F0H,8BH,02H,00H        ; 0D80 TOK 8B -> L0D84 last
 L0D84:
         LD      A,8BH                   ; 0D84  3e8b
         JP      L0CD6                   ; 0D86  c3d60c
+RULE22:
         DB      6CH,52H,49H,47H,48H,54H,4DH,19H ; 0D89 KW "RIGHT" -> S_RIGHT next 0DA9
         DB      6BH,4CH,45H,46H,54H,4AH,12H ; 0D91 KW "LEFT" -> S_LEFT next 0DA9
         DB      2AH,4DH,49H,44H,1CH     ; 0D98 KW "MID" next 0DB8
@@ -1499,13 +1564,13 @@ S_LEFT:
 L0DE2:
         JP      L0C10                   ; 0DE2  c3100c
 L0DE5:
-        LD      A,(4196H)               ; 0DE5  3a9641
+        LD      A,(V_4196)              ; 0DE5  3a9641
         CALL    L23EB                   ; 0DE8  cdeb23
 L0DEB:
         CALL    L24B9                   ; 0DEB  cdb924
 L0DEE:
-        LD      HL,(4192H)              ; 0DEE  2a9241
-        LD      DE,34A5H                ; 0DF1  11a534
+        LD      HL,(V_4192)             ; 0DEE  2a9241
+        LD      DE,D34A5                ; 0DF1  11a534
         AND     A                       ; 0DF4  a7
         SBC     HL,DE                   ; 0DF5  ed52
         RET     z                       ; 0DF7  c8
@@ -1519,26 +1584,32 @@ L0DFF:
         CALL    L23EE                   ; 0E04  cdee23
         JR      L0DEE                   ; 0E07  18e5
 L0E09:
-        LD      A,(4196H)               ; 0E09  3a9641
+        LD      A,(V_4196)              ; 0E09  3a9641
         CALL    EMIT_BYTE               ; 0E0C  cdbc23
         JR      L0DEB                   ; 0E0F  18da
+RULE2A:
         DB      38H,26H,00H             ; 0E11 RULE 26
         DB      38H,28H,00H             ; 0E14 RULE 28
+RULE24:
         DB      0F0H,85H,02H,00H        ; 0E17 TOK 85 -> L0E1B last
 L0E1B:
-        LD      HL,(4003H)              ; 0E1B  2a0340
+        LD      HL,(V_4003)             ; 0E1B  2a0340
         CALL    L2143                   ; 0E1E  cd4321
         LD      HL,4                    ; 0E21  210400
         ADD     HL,DE                   ; 0E24  19
         JP      L23E0                   ; 0E25  c3e023
+RULE26:
         DB      6AH,44H,41H,49H,5AH,00H ; 0E28 KW "DAI" -> S_DAI
         DB      0EAH,43H,4FH,49H,59H,00H ; 0E2E KW "COI" -> S_COI last
+RULE28:
         DB      6AH,44H,41H,4FH,58H,00H ; 0E34 KW "DAO" -> S_DAO
         DB      0EAH,43H,4FH,4FH,57H,00H ; 0E3A KW "COO" -> S_COO last
+RULE2C:
         DB      6AH,52H,53H,49H,6FH,00H ; 0E40 KW "RSI" -> S_RSI
         DB      6AH,4DH,54H,52H,5BH,33H ; 0E46 KW "MTR" -> S_MTR next 0E7E
         DB      6AH,46H,44H,52H,4BH,2DH ; 0E4C KW "FDR" -> S_FDR next 0E7E
         DB      0EAH,4BH,45H,59H,59H,00H ; 0E52 KW "KEY" -> S_KEY last
+RULE2E:
         DB      6AH,52H,53H,4FH,64H,00H ; 0E58 KW "RSO" -> S_RSO
         DB      6AH,4DH,54H,57H,48H,1BH ; 0E5E KW "MTW" -> S_MTW next 0E7E
         DB      6AH,46H,44H,57H,38H,15H ; 0E64 KW "FDW" -> S_FDW next 0E7E
@@ -1548,29 +1619,29 @@ L0E1B:
         DB      78H,1EH,52H,00H         ; 0E7E RULE 1E -> L0ED2
         DB      0F0H,83H,4BH,00H        ; 0E82 TOK 83 -> L0ECF last
 S_DAI:
-        LD      HL,41F7H                ; 0E86  21f741
+        LD      HL,V_41F7               ; 0E86  21f741
         JR      L0E98                   ; 0E89  180d
 S_COI:
-        LD      HL,41F5H                ; 0E8B  21f541
+        LD      HL,V_41F5               ; 0E8B  21f541
         JR      L0E98                   ; 0E8E  1808
 S_DAO:
-        LD      HL,41F3H                ; 0E90  21f341
+        LD      HL,V_41F3               ; 0E90  21f341
         JR      L0E98                   ; 0E93  1803
 S_COO:
-        LD      HL,41F1H                ; 0E95  21f141
+        LD      HL,V_41F1               ; 0E95  21f141
 L0E98:
         JP      L23E0                   ; 0E98  c3e023
 S_FDR:
-        LD      HL,374CH                ; 0E9B  214c37
+        LD      HL,DEV_FDR              ; 0E9B  214c37
         JR      L0ECC                   ; 0E9E  182c
 S_FDW:
-        LD      HL,3755H                ; 0EA0  215537
+        LD      HL,DEV_FDW              ; 0EA0  215537
         JR      L0ECC                   ; 0EA3  1827
 S_MTR:
-        LD      HL,373AH                ; 0EA5  213a37
+        LD      HL,DEV_MTR              ; 0EA5  213a37
         JR      L0ECC                   ; 0EA8  1822
 S_MTW:
-        LD      HL,3743H                ; 0EAA  214337
+        LD      HL,DEV_MTW              ; 0EAA  214337
         JR      L0ECC                   ; 0EAD  181d
 S_KEY:
         LD      L,0                     ; 0EAF  2e00
@@ -1579,7 +1650,7 @@ S_RSI:
         LD      L,24H                   ; 0EB3  2e24
         JR      L0EC6                   ; 0EB5  180f
 S_DUMMY:
-        LD      HL,34ACH                ; 0EB7  21ac34
+        LD      HL,D34AC                ; 0EB7  21ac34
         JR      L0ECC                   ; 0EBA  1810
 S_SCR:
         LD      L,12H                   ; 0EBC  2e12
@@ -1591,7 +1662,7 @@ S_LPR:
         LD      L,2DH                   ; 0EC4  2e2d
 L0EC6:
         LD      H,0                     ; 0EC6  2600
-        LD      DE,41FBH                ; 0EC8  11fb41
+        LD      DE,CHANTAB              ; 0EC8  11fb41
         ADD     HL,DE                   ; 0ECB  19
 L0ECC:
         JP      L23E0                   ; 0ECC  c3e023
@@ -1599,6 +1670,7 @@ L0ECF:
         CALL    L0CEC                   ; 0ECF  cdec0c
 L0ED2:
         JP      L23EE                   ; 0ED2  c3ee23
+RULE30:
         DB      6BH,50H,41H,47H,45H,3DH,00H ; 0ED5 KW "PAGE" -> S_PAGE
         DB      6BH,53H,4BH,49H,50H,3AH,00H ; 0EDC KW "SKIP" -> S_SKIP
         DB      6AH,43H,4FH,4CH,38H,27H ; 0EE3 KW "COL" -> L0F1F next 0F0F
@@ -1644,22 +1716,22 @@ S_HEX:
         LD      A,74H                   ; 0F3D  3e74
         LD      HL,0401H                ; 0F3F  210104
 L0F42:
-        LD      (41C3H),HL              ; 0F42  22c341
+        LD      (V_41C3),HL             ; 0F42  22c341
         JP      EMIT_BYTE               ; 0F45  c3bc23
 L0F48:
         LD      HL,2001H                ; 0F48  210120
         JR      L0F50                   ; 0F4B  1803
 L0F4D:
-        LD      HL,(41C3H)              ; 0F4D  2ac341
+        LD      HL,(V_41C3)             ; 0F4D  2ac341
 L0F50:
-        LD      A,(4004H)               ; 0F50  3a0440
+        LD      A,(V_4004)              ; 0F50  3a0440
         AND     A                       ; 0F53  a7
         JR      z,L0F5B                 ; 0F54  2805
 L0F56:
         LD      A,27H                   ; 0F56  3e27
         JP      ERROR                   ; 0F58  c35933
 L0F5B:
-        LD      A,(4003H)               ; 0F5B  3a0340
+        LD      A,(V_4003)              ; 0F5B  3a0340
         INC     H                       ; 0F5E  24
         CP      H                       ; 0F5F  bc
         JR      nc,L0F56                ; 0F60  30f4
@@ -1672,12 +1744,12 @@ L0F6C:
         JP      EMIT_BYTE               ; 0F6C  c3bc23
 L0F6F:
         LD      A,0                     ; 0F6F  3e00
-        LD      (4000H),A               ; 0F71  320040
-        LD      (4001H),A               ; 0F74  320140
-        LD      (4002H),A               ; 0F77  320240
+        LD      (V_4000),A              ; 0F71  320040
+        LD      (V_4001),A              ; 0F74  320140
+        LD      (V_4002),A              ; 0F77  320240
 L0F7A:
         CALL    L11F8                   ; 0F7A  cdf811
-        LD      (4003H),A               ; 0F7D  320340
+        LD      (V_4003),A              ; 0F7D  320340
         LD      A,B                     ; 0F80  78
         OR      A                       ; 0F81  b7
         JR      z,L0F7A                 ; 0F82  28f6
@@ -1685,21 +1757,21 @@ L0F7A:
         JR      c,L0FE7                 ; 0F86  385f
         CP      10                      ; 0F88  fe0a
         JR      nc,L0F99                ; 0F8A  300d
-        LD      HL,101EH                ; 0F8C  211e10
+        LD      HL,D101E                ; 0F8C  211e10
         ADD     A,L                     ; 0F8F  85
         LD      L,A                     ; 0F90  6f
         JR      nc,L0F94                ; 0F91  3001
         INC     H                       ; 0F93  24
 L0F94:
         LD      A,(HL)                  ; 0F94  7e
-        LD      (4000H),A               ; 0F95  320040
+        LD      (V_4000),A              ; 0F95  320040
         RET                             ; 0F98  c9
 L0F99:
         SUB     20H                     ; 0F99  d620
         JR      c,L0FE7                 ; 0F9B  384a
         CP      11                      ; 0F9D  fe0b
         JR      nc,L0FE7                ; 0F9F  3046
-        LD      HL,1028H                ; 0FA1  212810
+        LD      HL,D1028                ; 0FA1  212810
         ADD     A,A                     ; 0FA4  87
         ADD     A,L                     ; 0FA5  85
         LD      L,A                     ; 0FA6  6f
@@ -1710,8 +1782,8 @@ L0FAA:
         INC     HL                      ; 0FAB  23
         LD      H,(HL)                  ; 0FAC  66
         LD      L,A                     ; 0FAD  6f
-        LD      A,(4003H)               ; 0FAE  3a0340
-        LD      IX,4003H                ; 0FB1  dd210340
+        LD      A,(V_4003)              ; 0FAE  3a0340
+        LD      IX,V_4003               ; 0FB1  dd210340
         JR      L0FBA                   ; 0FB5  1803
 L0FB7:
         CALL    L11F8                   ; 0FB7  cdf811
@@ -1758,16 +1830,16 @@ L0FED:
         RRC     C                       ; 0FED  cb09
         JR      nc,L0FFA                ; 0FEF  3009
         INC     IX                      ; 0FF1  dd23
-        LD      A,(4002H)               ; 0FF3  3a0240
+        LD      A,(V_4002)              ; 0FF3  3a0240
         INC     A                       ; 0FF6  3c
-        LD      (4002H),A               ; 0FF7  320240
+        LD      (V_4002),A              ; 0FF7  320240
 L0FFA:
         LD      (IX),0                  ; 0FFA  dd360000
         RRC     C                       ; 0FFE  cb09
         JR      nc,L1007                ; 1000  3005
         LD      A,(HL)                  ; 1002  7e
         INC     HL                      ; 1003  23
-        LD      (4001H),A               ; 1004  320140
+        LD      (V_4001),A              ; 1004  320140
 L1007:
         RRC     C                       ; 1007  cb09
         CALL    c,SYN_ACTION            ; 1009  dcb825
@@ -1784,71 +1856,251 @@ L1007:
 L101B:
         ADD     HL,DE                   ; 101B  19
         JR      L0FB7                   ; 101C  1899
+D101E:
         DB      47H,41H,42H,45H,46H,62H,43H,44H ; 101E GABEFbCD
-        DB      48H,49H,3EH,10H,6FH,10H,66H,10H ; 1026 HI>.o.f.
-        DB      69H,10H,9EH,10H,6CH,10H,0D5H,10H ; 102E i...l...
-        DB      7FH,10H,89H,10H,67H,11H,94H,10H ; 1036 ....g...
-        DB      02H,40H,0C0H,07H,30H,0A0H,09H,0D6H ; 103E .@..0...
-        DB      0EH,0F8H,44H,0C0H,0F5H,0B3H,04H,0C3H ; 1046 ..D.....
-        DB      0E7H,0FH,3EH,8BH,18H,46H,3AH,0C2H ; 104E ..>..F:.
-        DB      41H,0CBH,67H,0C8H,3EH,20H,2AH,88H ; 1056 A.g.> *.
-        DB      40H,2BH,86H,77H,0DDH,77H,0FFH,0C9H ; 105E @+.w.w..
-        DB      0BEH,2CH,0EH,0BEH,20H,0BH,0BEH,44H ; 1066 .,.. ..D
-        DB      08H,1EH,4EH,05H,2CH,2AH,68H,0A3H ; 106E ..N.,*h.
-        DB      3EH,01H,32H,02H,40H,3EH,61H,18H ; 1076 >.2.@>a.
-        DB      1BH,1AH,04H,0FH,28H,3EH,05H,28H ; 107E ....(>.(
-        DB      3DH,06H,0A3H,1AH,01H,05H,28H,3DH ; 1086 =.....(=
-        DB      03H,0A3H,3EH,63H,18H,06H,02H,0B0H ; 108E ..>c....
-        DB      21H,01H,3EH,64H,32H,00H,40H,0C9H ; 1096 !.>d2.@.
-        DB      06H,40H,4EH,0FH,48H,41H,90H,18H ; 109E .@N.HA..
-        DB      48H,4FH,92H,1CH,40H,58H,16H,0C4H ; 10A6 HO..@X..
-        DB      0C6H,37H,48H,41H,94H,0AH,80H,4FH ; 10AE .7HA...O
-        DB      40H,54H,12H,0C8H,52H,96H,0BH,80H ; 10B6 @T..R...
-        DB      4EH,0C0H,44H,06H,88H,4FH,98H,80H ; 10BE N.D..O..
-        DB      52H,0B0H,2EH,08H,0B0H,2EH,01H,3EH ; 10C6 R......>
-        DB      65H,18H,0C9H,3EH,66H,18H,0C5H,06H ; 10CE e..>f...
-        DB      44H,0C6H,0FEH,44H,2EH,09H,44H,45H ; 10D6 D..D..DE
-        DB      10H,34H,25H,19H,0B3H,22H,84H,0C6H ; 10DE .4%.."..
-        DB      44H,0C6H,0FEH,44H,45H,03H,0B3H,24H ; 10E6 D..DE..$
-        DB      44H,2BH,03H,04H,2DH,84H,0C6H,34H ; 10EE D+..-..4
-        DB      0C6H,1AH,0B3H,18H,0CDH,0C7H,2DH,0DAH ; 10F6 ......-.
-        DB      0E7H,0FH,3EH,89H,0C3H,58H,11H,0CDH ; 10FE ..>..X..
-        DB      1BH,11H,0CDH,94H,26H,38H,07H,3EH ; 1106 ....&8.>
-        DB      8EH,18H,05H,0CDH,1BH,11H,3EH,8AH ; 110E ......>.
-        DB      0EH,05H,0C3H,5FH,11H,11H,03H,40H ; 1116 ..._...@
-        DB      0CDH,1BH,2EH,11H,03H,40H,0C3H,0AEH ; 111E .....@..
-        DB      26H,40H,27H,03H,0C3H,43H,44H,30H ; 1126 &@'..CD0
-        DB      0FEH,44H,31H,0FBH,0B3H,22H,40H,27H ; 112E .D1.."@'
-        DB      03H,0C3H,36H,44H,0C6H,0FEH,44H,41H ; 1136 ..6D..DA
-        DB      0FBH,44H,42H,0F8H,44H,43H,0F5H,44H ; 113E .DB.DC.D
-        DB      44H,0F2H,44H,45H,0EFH,44H,46H,0ECH ; 1146 D.DE.DF.
-        DB      0B3H,01H,0CDH,99H,2DH,18H,03H,0CDH ; 114E ....-...
-        DB      82H,2DH,22H,03H,40H,3EH,89H,0EH ; 1156 .-".@>..
-        DB      02H,32H,00H,40H,79H,32H,02H,40H ; 115E .2.@y2.@
-        DB      0C9H,44H,48H,0CBH,44H,42H,0BBH,86H ; 1166 .DH.DB..
-        DB      44H,0C9H,0FEH,44H,0C6H,0FBH,30H,25H ; 116E D..D..0%
-        DB      0CH,30H,24H,0DH,30H,26H,0EH,30H ; 1176 .0$.0&.0
-        DB      3AH,0FH,0B3H,1AH,06H,81H,18H,0AH ; 117E :.......
-        DB      06H,83H,18H,06H,06H,85H,18H,02H ; 1186 ........
-        DB      06H,84H,3AH,02H,40H,0FEH,03H,78H ; 118E ..:.@..x
-        DB      38H,53H,0C3H,0E7H,0FH,3AH,02H,40H ; 1196 8S...:.@
-        DB      0FEH,02H,38H,32H,0EDH,5BH,03H,40H ; 119E ..82.[.@
-        DB      20H,30H,21H,49H,46H,0EDH,52H,28H ; 11A6  0!IF.R(
-        DB      20H,21H,4FH,4EH,0A7H,0EDH,52H,28H ; 11AE  !ON..R(
-        DB      18H,21H,54H,4FH,0A7H,0EDH,52H,28H ; 11B6 .!TO..R(
-        DB      10H,21H,49H,4EH,0A7H,0EDH,52H,28H ; 11BE .!IN..R(
-        DB      08H,21H,41H,54H,0A7H,0EDH,52H,20H ; 11C6 .!AT..R
-        DB      05H,3EH,20H,0C3H,9AH,10H,3EH,82H ; 11CE .> ...>.
-        DB      18H,13H,0FEH,05H,30H,0F3H,21H,46H ; 11D6 ....0.!F
-        DB      4EH,0A7H,0EDH,52H,20H,0EBH,3EH,86H ; 11DE N..R .>.
-        DB      2AH,05H,40H,18H,03H,2AH,03H,40H ; 11E6 *.@..*.@
-        DB      32H,00H,40H,0CDH,6FH,21H,22H,03H ; 11EE 2.@.o!".
-        DB      40H,0C9H                ; 11F6 @.
+        DB      48H,49H                 ; 1026 HI
+D1028:
+        DW      D103E                   ; 1028  3e10
+        DW      D106F                   ; 102A  6f10
+        DW      D1066                   ; 102C  6610
+        DW      D1069                   ; 102E  6910
+        DW      D109E                   ; 1030  9e10
+        DW      D106C                   ; 1032  6c10
+        DW      D10D5                   ; 1034  d510
+        DW      D107F                   ; 1036  7f10
+        DW      D1089                   ; 1038  8910
+        DW      D1167                   ; 103A  6711
+        DW      D1094                   ; 103C  9410
+D103E:
+        DB      02H                     ; 103E SCAN jedes
+        DB      40H,0C0H,07H            ; 103F SCAN '@' weiter 1048
+        DB      30H,0A0H,09H            ; 1042 SCAN ' ' -> L104D ende
+        DB      0D6H,0EH,0F8H           ; 1045 SCAN jedes -> L1054 weiter 103F last
+        DB      44H,0C0H,0F5H           ; 1048 SCAN '@' weiter 103F
+        DB      0B3H,04H                ; 104B SCAN jedes -> L1050 ende last
+L104D:
+        JP      L0FE7                   ; 104D  c3e70f
+L1050:
+        LD      A,8BH                   ; 1050  3e8b
+        JR      L109A                   ; 1052  1846
+L1054:
+        LD      A,(V_41C2)              ; 1054  3ac241
+        BIT     4,A                     ; 1057  cb67
+        RET     z                       ; 1059  c8
+        LD      A,20H                   ; 105A  3e20
+        LD      HL,(ED_RPTR)            ; 105C  2a8840
+        DEC     HL                      ; 105F  2b
+        ADD     A,(HL)                  ; 1060  86
+        LD      (HL),A                  ; 1061  77
+        LD      (IX-1),A                ; 1062  dd77ff
+        RET                             ; 1065  c9
+D1066:
+        DB      0BEH,2CH,0EH            ; 1066 SCAN jedes =2C -> L1076 ende last
+D1069:
+        DB      0BEH,20H,0BH            ; 1069 SCAN jedes =20 -> L1076 ende last
+D106C:
+        DB      0BEH,44H,08H            ; 106C SCAN jedes =44 -> L1076 ende last
+D106F:
+        DB      1EH,4EH,05H             ; 106F SCAN jedes =4E -> L1076
+        DB      2CH,2AH,68H             ; 1072 SCAN '*' =68 ende
+        DB      0A3H                    ; 1075 SCAN jedes ende last
+L1076:
+        LD      A,1                     ; 1076  3e01
+        LD      (V_4002),A              ; 1078  320240
+        LD      A,61H                   ; 107B  3e61
+        JR      L109A                   ; 107D  181b
+D107F:
+        DB      1AH,04H,0FH             ; 107F SCAN jedes =04 -> L1090
+        DB      28H,3EH,05H             ; 1082 SCAN '>' =05 ende
+        DB      28H,3DH,06H             ; 1085 SCAN '=' =06 ende
+        DB      0A3H                    ; 1088 SCAN jedes ende last
+D1089:
+        DB      1AH,01H,05H             ; 1089 SCAN jedes =01 -> L1090
+        DB      28H,3DH,03H             ; 108C SCAN '=' =03 ende
+        DB      0A3H                    ; 108F SCAN jedes ende last
+L1090:
+        LD      A,63H                   ; 1090  3e63
+        JR      L109A                   ; 1092  1806
+D1094:
+        DB      02H                     ; 1094 SCAN jedes
+        DB      0B0H,21H,01H            ; 1095 SCAN '!' -> L1098 ende last
+L1098:
+        LD      A,64H                   ; 1098  3e64
+L109A:
+        LD      (V_4000),A              ; 109A  320040
+        RET                             ; 109D  c9
+D109E:
+        DB      06H                     ; 109E SCAN jedes
+        DB      40H,4EH,0FH             ; 109F SCAN 'N' weiter 10B0
+        DB      48H,41H,90H,18H         ; 10A2 SCAN 'A' =90 weiter 10BD
+        DB      48H,4FH,92H,1CH         ; 10A6 SCAN 'O' =92 weiter 10C5
+        DB      40H,58H,16H             ; 10AA SCAN 'X' weiter 10C2
+        DB      0C4H,0C6H,37H           ; 10AD SCAN 'F' weiter 10E6 last
+        DB      48H,41H,94H,0AH         ; 10B0 SCAN 'A' =94 weiter 10BD
+        DB      80H,4FH                 ; 10B4 SCAN 'O' last
+        DB      40H,54H,12H             ; 10B6 SCAN 'T' weiter 10CA
+        DB      0C8H,52H,96H,0BH        ; 10B9 SCAN 'R' =96 weiter 10C7 last
+        DB      80H,4EH                 ; 10BD SCAN 'N' last
+        DB      0C0H,44H,06H            ; 10BF SCAN 'D' weiter 10C7 last
+        DB      88H,4FH,98H             ; 10C2 SCAN 'O' =98 last
+        DB      80H,52H                 ; 10C5 SCAN 'R' last
+        DB      0B0H,2EH,08H            ; 10C7 SCAN '.' -> L10D1 ende last
+        DB      0B0H,2EH,01H            ; 10CA SCAN '.' -> L10CD ende last
+L10CD:
+        LD      A,65H                   ; 10CD  3e65
+        JR      L109A                   ; 10CF  18c9
+L10D1:
+        LD      A,66H                   ; 10D1  3e66
+        JR      L109A                   ; 10D3  18c5
+D10D5:
+        DB      06H                     ; 10D5 SCAN jedes
+        DB      44H,0C6H,0FEH           ; 10D6 SCAN 'F' weiter 10D6
+        DB      44H,2EH,09H             ; 10D9 SCAN '.' weiter 10E4
+        DB      44H,45H,10H             ; 10DC SCAN 'E' weiter 10EE
+        DB      34H,25H,19H             ; 10DF SCAN '%' -> L10FA ende
+        DB      0B3H,22H                ; 10E2 SCAN jedes -> L1105 ende last
+        DB      84H,0C6H                ; 10E4 SCAN 'F' last
+        DB      44H,0C6H,0FEH           ; 10E6 SCAN 'F' weiter 10E6
+        DB      44H,45H,03H             ; 10E9 SCAN 'E' weiter 10EE
+        DB      0B3H,24H                ; 10EC SCAN jedes -> L1111 ende last
+        DB      44H,2BH,03H             ; 10EE SCAN '+' weiter 10F3
+        DB      04H,2DH                 ; 10F1 SCAN '-'
+        DB      84H,0C6H                ; 10F3 SCAN 'F' last
+        DB      34H,0C6H,1AH            ; 10F5 SCAN 'F' -> L1111 ende
+        DB      0B3H,18H                ; 10F8 SCAN jedes -> L1111 ende last
+L10FA:
+        CALL    L2DC7                   ; 10FA  cdc72d
+        JP      c,L0FE7                 ; 10FD  dae70f
+        LD      A,89H                   ; 1100  3e89
+        JP      L1158                   ; 1102  c35811
+L1105:
+        CALL    L111B                   ; 1105  cd1b11
+        CALL    L2694                   ; 1108  cd9426
+        JR      c,L1114                 ; 110B  3807
+        LD      A,8EH                   ; 110D  3e8e
+        JR      L1116                   ; 110F  1805
+L1111:
+        CALL    L111B                   ; 1111  cd1b11
+L1114:
+        LD      A,8AH                   ; 1114  3e8a
+L1116:
+        LD      C,5                     ; 1116  0e05
+        JP      L115F                   ; 1118  c35f11
+L111B:
+        LD      DE,V_4003               ; 111B  110340
+        CALL    FP_PARSE_DECIMAL        ; 111E  cd1b2e
+        LD      DE,V_4003               ; 1121  110340
+        JP      FAC_STORE               ; 1124  c3ae26
+        DB      40H,27H,03H             ; 1127 SCAN "'" weiter 112C
+        DB      0C3H,43H                ; 112A SCAN jedes weiter 116E last
+        DB      44H,30H,0FEH            ; 112C SCAN '0' weiter 112C
+        DB      44H,31H,0FBH            ; 112F SCAN '1' weiter 112C
+        DB      0B3H,22H                ; 1132 SCAN jedes -> L1155 ende last
+        DB      40H,27H,03H             ; 1134 SCAN "'" weiter 1139
+        DB      0C3H,36H                ; 1137 SCAN jedes weiter 116E last
+        DB      44H,0C6H,0FEH           ; 1139 SCAN 'F' weiter 1139
+        DB      44H,41H,0FBH            ; 113C SCAN 'A' weiter 1139
+        DB      44H,42H,0F8H            ; 113F SCAN 'B' weiter 1139
+        DB      44H,43H,0F5H            ; 1142 SCAN 'C' weiter 1139
+        DB      44H,44H,0F2H            ; 1145 SCAN 'D' weiter 1139
+        DB      44H,45H,0EFH            ; 1148 SCAN 'E' weiter 1139
+        DB      44H,46H,0ECH            ; 114B SCAN 'F' weiter 1139
+        DB      0B3H,01H                ; 114E SCAN jedes -> L1150 ende last
+L1150:
+        CALL    L2D99                   ; 1150  cd992d
+        JR      L1158                   ; 1153  1803
+L1155:
+        CALL    L2D82                   ; 1155  cd822d
+L1158:
+        LD      (V_4003),HL             ; 1158  220340
+        LD      A,89H                   ; 115B  3e89
+        LD      C,2                     ; 115D  0e02
+L115F:
+        LD      (V_4000),A              ; 115F  320040
+        LD      A,C                     ; 1162  79
+        LD      (V_4002),A              ; 1163  320240
+        RET                             ; 1166  c9
+D1167:
+        DB      44H,48H,0CBH            ; 1167 SCAN 'H' weiter 1134
+        DB      44H,42H,0BBH            ; 116A SCAN 'B' weiter 1127
+        DB      86H                     ; 116D SCAN jedes last
+        DB      44H,0C9H,0FEH           ; 116E SCAN 'I' weiter 116E
+        DB      44H,0C6H,0FBH           ; 1171 SCAN 'F' weiter 116E
+        DB      30H,25H,0CH             ; 1174 SCAN '%' -> L1182 ende
+        DB      30H,24H,0DH             ; 1177 SCAN '$' -> L1186 ende
+        DB      30H,26H,0EH             ; 117A SCAN '&' -> L118A ende
+        DB      30H,3AH,0FH             ; 117D SCAN ':' -> L118E ende
+        DB      0B3H,1AH                ; 1180 SCAN jedes -> L119B ende last
+L1182:
+        LD      B,81H                   ; 1182  0681
+        JR      L1190                   ; 1184  180a
+L1186:
+        LD      B,83H                   ; 1186  0683
+        JR      L1190                   ; 1188  1806
+L118A:
+        LD      B,85H                   ; 118A  0685
+        JR      L1190                   ; 118C  1802
+L118E:
+        LD      B,84H                   ; 118E  0684
+L1190:
+        LD      A,(V_4002)              ; 1190  3a0240
+        CP      3                       ; 1193  fe03
+        LD      A,B                     ; 1195  78
+        JR      c,L11EB                 ; 1196  3853
+        JP      L0FE7                   ; 1198  c3e70f
+L119B:
+        LD      A,(V_4002)              ; 119B  3a0240
+        CP      2                       ; 119E  fe02
+        JR      c,L11D4                 ; 11A0  3832
+        LD      DE,(V_4003)             ; 11A2  ed5b0340
+        JR      nz,L11D8                ; 11A6  2030
+        LD      HL,4649H                ; 11A8  214946
+        SBC     HL,DE                   ; 11AB  ed52
+        JR      z,L11CF                 ; 11AD  2820
+        LD      HL,4E4FH                ; 11AF  214f4e
+        AND     A                       ; 11B2  a7
+        SBC     HL,DE                   ; 11B3  ed52
+        JR      z,L11CF                 ; 11B5  2818
+        LD      HL,4F54H                ; 11B7  21544f
+        AND     A                       ; 11BA  a7
+        SBC     HL,DE                   ; 11BB  ed52
+        JR      z,L11CF                 ; 11BD  2810
+        LD      HL,4E49H                ; 11BF  21494e
+        AND     A                       ; 11C2  a7
+        SBC     HL,DE                   ; 11C3  ed52
+        JR      z,L11CF                 ; 11C5  2808
+        LD      HL,5441H                ; 11C7  214154
+        AND     A                       ; 11CA  a7
+        SBC     HL,DE                   ; 11CB  ed52
+        JR      nz,L11D4                ; 11CD  2005
+L11CF:
+        LD      A,20H                   ; 11CF  3e20
+        JP      L109A                   ; 11D1  c39a10
+L11D4:
+        LD      A,82H                   ; 11D4  3e82
+        JR      L11EB                   ; 11D6  1813
+L11D8:
+        CP      5                       ; 11D8  fe05
+        JR      nc,L11CF                ; 11DA  30f3
+        LD      HL,4E46H                ; 11DC  21464e
+        AND     A                       ; 11DF  a7
+        SBC     HL,DE                   ; 11E0  ed52
+        JR      nz,L11CF                ; 11E2  20eb
+        LD      A,86H                   ; 11E4  3e86
+        LD      HL,(V_4005)             ; 11E6  2a0540
+        JR      L11EE                   ; 11E9  1803
+L11EB:
+        LD      HL,(V_4003)             ; 11EB  2a0340
+L11EE:
+        LD      (V_4000),A              ; 11EE  320040
+        CALL    L216F                   ; 11F1  cd6f21
+        LD      (V_4003),HL             ; 11F4  220340
+        RET                             ; 11F7  c9
 L11F8:
         PUSH    HL                      ; 11F8  e5
         CALL    L3645                   ; 11F9  cd4536
         AND     7FH                     ; 11FC  e67f
-        LD      HL,41C2H                ; 11FE  21c241
+        LD      HL,V_41C2               ; 11FE  21c241
         RES     4,(HL)                  ; 1201  cba6
         CP      61H                     ; 1203  fe61
         JR      c,L120F                 ; 1205  3808
@@ -1857,16 +2109,16 @@ L11F8:
         SET     4,(HL)                  ; 120B  cbe6
         SUB     20H                     ; 120D  d620
 L120F:
-        LD      HL,(4088H)              ; 120F  2a8840
+        LD      HL,(ED_RPTR)            ; 120F  2a8840
         LD      C,A                     ; 1212  4f
         LD      A,H                     ; 1213  7c
         OR      L                       ; 1214  b5
         JR      nz,L121A                ; 1215  2003
-        LD      HL,408AH                ; 1217  218a40
+        LD      HL,ED_BUF               ; 1217  218a40
 L121A:
         LD      (HL),C                  ; 121A  71
         INC     HL                      ; 121B  23
-        LD      (4088H),HL              ; 121C  228840
+        LD      (ED_RPTR),HL            ; 121C  228840
         LD      A,C                     ; 121F  79
         PUSH    AF                      ; 1220  f5
         CP      1EH                     ; 1221  fe1e
@@ -1883,7 +2135,7 @@ L121A:
         CP      26H                     ; 1237  fe26
         JR      nc,L1247                ; 1239  300c
 L123B:
-        LD      HL,124BH                ; 123B  214b12
+        LD      HL,D124B                ; 123B  214b12
         ADD     A,L                     ; 123E  85
         LD      L,A                     ; 123F  6f
         JR      nc,L1243                ; 1240  3001
@@ -1897,6 +2149,7 @@ L1244:
 L1247:
         LD      B,0FFH                  ; 1247  06ff
         JR      L1244                   ; 1249  18f9
+D124B:
         DB      00H,4AH,40H,28H,03H,04H,05H,40H ; 124B .J@(...@
         DB      21H,22H,41H,42H,23H,43H,44H,45H ; 1253 !"AB#CDE
         DB      46H,46H,46H,46H,46H,46H,46H,46H ; 125B FFFFFFFF
@@ -2023,11 +2276,11 @@ L1346:
 L134A:
         XOR     A                       ; 134A  af
 L134B:
-        LD      (41B9H),A               ; 134B  32b941
+        LD      (V_41B9),A              ; 134B  32b941
         CALL    L226A                   ; 134E  cd6a22
         JR      nz,L1361                ; 1351  200e
 L1353:
-        LD      A,(41B9H)               ; 1353  3ab941
+        LD      A,(V_41B9)              ; 1353  3ab941
         AND     A                       ; 1356  a7
         RET     z                       ; 1357  c8
         CALL    L35BF                   ; 1358  cdbf35
@@ -2044,11 +2297,11 @@ L1361:
         LD      A,H                     ; 136A  7c
         OR      L                       ; 136B  b5
         JR      nz,L1387                ; 136C  2019
-        LD      A,(41B9H)               ; 136E  3ab941
+        LD      A,(V_41B9)              ; 136E  3ab941
         AND     A                       ; 1371  a7
         CALL    nz,L35BF                ; 1372  c4bf35
         POP     HL                      ; 1375  e1
-        LD      IY,(41F1H)              ; 1376  fd2af141
+        LD      IY,(V_41F1)             ; 1376  fd2af141
         CALL    L255D                   ; 137A  cd5d25
         CALL    L34B7                   ; 137D  cdb734
         CALL    LINE_NEXT               ; 1380  cd1f33
@@ -2058,17 +2311,17 @@ L1387:
         EX      (SP),HL                 ; 1387  e3
         PUSH    HL                      ; 1388  e5
         CALL    L1353                   ; 1389  cd5313
-        LD      HL,41C1H                ; 138C  21c141
+        LD      HL,V_41C1               ; 138C  21c141
         BIT     5,(HL)                  ; 138F  cb6e
         JR      z,L1399                 ; 1391  2806
-        LD      IY,(41F3H)              ; 1393  fd2af341
+        LD      IY,(V_41F3)             ; 1393  fd2af341
         JR      L13A6                   ; 1397  180d
 L1399:
-        LD      HL,41C2H                ; 1399  21c241
+        LD      HL,V_41C2               ; 1399  21c241
         BIT     2,(HL)                  ; 139C  cb56
         JR      z,L13A6                 ; 139E  2806
         RES     2,(HL)                  ; 13A0  cb96
-        LD      IY,4204H                ; 13A2  fd210442
+        LD      IY,V_4204               ; 13A2  fd210442
 L13A6:
         POP     HL                      ; 13A6  e1
         CALL    L255D                   ; 13A7  cd5d25
@@ -2077,23 +2330,68 @@ L13A6:
         CALL    L34B7                   ; 13AE  cdb734
         CALL    LINE_NEXT               ; 13B1  cd1f33
         JR      L134A                   ; 13B4  1894
-        DB      21H,0C1H,41H,0CBH,0EEH,0FDH,2AH,0F3H ; 13B6 !.A...*.
-        DB      41H,0CDH,83H,35H,0CDH,43H,13H,21H ; 13BE A..5.C.!
-        DB      9DH,34H,0CDH,08H,36H,21H,0C1H,41H ; 13C6 .4..6!.A
-        DB      0CBH,0AEH,0C3H,0ABH,35H,21H,0C1H,41H ; 13CE ....5!.A
-        DB      0CBH,0EEH,0FDH,2AH,0F7H,41H,0FDH,0CBH ; 13D6 ...*.A..
-        DB      00H,46H,0CCH,83H,35H,0C3H,59H,01H ; 13DE .F..5.Y.
-        DB      2AH,0B9H,41H,7CH,0B5H,20H,03H,21H ; 13E6 *.A|. .!
-        DB      64H,00H,22H,0BDH,41H,2AH,0BBH,41H ; 13EE d.".A*.A
-        DB      7CH,0B5H,20H,03H,21H,0AH,00H,22H ; 13F6 |. .!.."
-        DB      0BFH,41H,0C9H,0CDH,4DH,22H,0CDH,5FH ; 13FE .A..M"._
-        DB      22H,0C8H,0CDH,6AH,22H,0C8H,22H,8CH ; 1406 "..j".".
-        DB      41H,0CDH,7EH,22H,18H,0F4H,0C3H,5EH ; 140E A.~"...^
-        DB      37H,0CDH,4DH,22H,0CDH,8FH,14H,0CDH ; 1416 7.M"....
-        DB      5FH,22H,0CAH,76H,15H,3EH,07H,0CDH ; 141E _".v.>..
-        DB      6CH,22H,0CAH,76H,15H,0F5H,0CDH,3AH ; 1426 l".v...:
-        DB      14H,0F1H,0CBH,4FH,0C2H,76H,15H,0CDH ; 142E ...O.v..
-        DB      26H,33H,18H,0E9H        ; 1436 &3..
+L13B6:
+        LD      HL,V_41C1               ; 13B6  21c141
+        SET     5,(HL)                  ; 13B9  cbee
+        LD      IY,(V_41F3)             ; 13BB  fd2af341
+        CALL    L3583                   ; 13BF  cd8335
+        CALL    L1343                   ; 13C2  cd4313
+        LD      HL,D349D                ; 13C5  219d34
+        CALL    L3608                   ; 13C8  cd0836
+        LD      HL,V_41C1               ; 13CB  21c141
+        RES     5,(HL)                  ; 13CE  cbae
+        JP      L35AB                   ; 13D0  c3ab35
+L13D3:
+        LD      HL,V_41C1               ; 13D3  21c141
+        SET     5,(HL)                  ; 13D6  cbee
+        LD      IY,(V_41F7)             ; 13D8  fd2af741
+        BIT     0,(IY)                  ; 13DC  fdcb0046
+        CALL    z,L3583                 ; 13E0  cc8335
+        JP      L0159                   ; 13E3  c35901
+L13E6:
+        LD      HL,(V_41B9)             ; 13E6  2ab941
+        LD      A,H                     ; 13E9  7c
+        OR      L                       ; 13EA  b5
+        JR      nz,L13F0                ; 13EB  2003
+        LD      HL,64H                  ; 13ED  216400
+L13F0:
+        LD      (V_41BD),HL             ; 13F0  22bd41
+        LD      HL,(V_41BB)             ; 13F3  2abb41
+        LD      A,H                     ; 13F6  7c
+        OR      L                       ; 13F7  b5
+        JR      nz,L13FD                ; 13F8  2003
+        LD      HL,10                   ; 13FA  210a00
+L13FD:
+        LD      (V_41BF),HL             ; 13FD  22bf41
+        RET                             ; 1400  c9
+L1401:
+        CALL    L224D                   ; 1401  cd4d22
+        CALL    L225F                   ; 1404  cd5f22
+        RET     z                       ; 1407  c8
+L1408:
+        CALL    L226A                   ; 1408  cd6a22
+        RET     z                       ; 140B  c8
+        LD      (V_418C),HL             ; 140C  228c41
+        CALL    L227E                   ; 140F  cd7e22
+        JR      L1408                   ; 1412  18f4
+L1414:
+        JP      L375E                   ; 1414  c35e37
+L1417:
+        CALL    L224D                   ; 1417  cd4d22
+        CALL    L148F                   ; 141A  cd8f14
+        CALL    L225F                   ; 141D  cd5f22
+        JP      z,X_STOP                ; 1420  ca7615
+L1423:
+        LD      A,7                     ; 1423  3e07
+        CALL    L226C                   ; 1425  cd6c22
+        JP      z,X_STOP                ; 1428  ca7615
+        PUSH    AF                      ; 142B  f5
+        CALL    L143A                   ; 142C  cd3a14
+        POP     AF                      ; 142F  f1
+        BIT     1,A                     ; 1430  cb4f
+        JP      nz,X_STOP               ; 1432  c27615
+        CALL    LINE_SET                ; 1435  cd2633
+        JR      L1423                   ; 1438  18e9
 L143A:
         LD      HL,6                    ; 143A  210600
         ADD     HL,BC                   ; 143D  09
@@ -2102,7 +2400,7 @@ L143A:
         LD      D,(HL)                  ; 1440  56
         LD      A,D                     ; 1441  7a
         OR      E                       ; 1442  b3
-        LD      (41DAH),BC              ; 1443  ed43da41
+        LD      (V_41DA),BC             ; 1443  ed43da41
         JR      z,L145C                 ; 1447  2813
         PUSH    DE                      ; 1449  d5
         POP     IX                      ; 144A  dde1
@@ -2110,11 +2408,11 @@ L143A:
         ADD     A,(IX)                  ; 144D  dd8600
         INC     IX                      ; 1450  dd23
         INC     A                       ; 1452  3c
-        LD      (41DCH),A               ; 1453  32dc41
+        LD      (V_41DC),A              ; 1453  32dc41
         CALL    L34B7                   ; 1456  cdb734
         CALL    RUNLOOP                 ; 1459  cd6014
 L145C:
-        LD      HL,(41DAH)              ; 145C  2ada41
+        LD      HL,(V_41DA)             ; 145C  2ada41
         RET                             ; 145F  c9
 
 ;=====================================================================
@@ -2123,7 +2421,7 @@ L145C:
 ; Die Routinen X_xxx kehren mit RET hierher zurueck.
 ;=====================================================================
 RUNLOOP:
-        LD      A,(41DCH)               ; 1460  3adc41
+        LD      A,(V_41DC)              ; 1460  3adc41
         CP      IXL                     ; 1463  ddbd
         RET     z                       ; 1465  c8
         LD      A,(IX)                  ; 1466  dd7e00
@@ -2149,37 +2447,158 @@ L1476:
         JP      c,L1EDE                 ; 1486  dade1e
         CALL    L1EDE                   ; 1489  cdde1e
         JP      L1F1B                   ; 148C  c31b1f
-        DB      0EDH,4BH,0B2H,41H,78H,0B1H,0C4H,2CH ; 148F .K.Ax..,
-        DB      17H,0AFH,32H,02H,40H,32H,0E4H,41H ; 1497 ..2.@2.A
-        DB      21H,0C1H,41H,0CBH,0CEH,0CBH,0A6H,0CBH ; 149F !.A.....
-        DB      56H,0C0H,21H,0A6H,41H,0CDH,45H,15H ; 14A7 V.!.A.E.
-        DB      28H,08H,71H,23H,70H,0CDH,40H,15H ; 14AF (.q#p.@.
-        DB      20H,0F8H,21H,0AAH,41H,0CDH,45H,15H ; 14B7  .!.A.E.
-        DB      28H,08H,71H,23H,70H,0CDH,40H,15H ; 14BF (.q#p.@.
-        DB      20H,0F8H,21H,0A8H,41H,11H,0AAH,41H ; 14C7  .!.A..A
-        DB      0CDH,48H,15H,28H,0FH,0EBH,21H,06H ; 14CF .H.(..!.
-        DB      00H,09H,01H,02H,00H,0EDH,0B0H,0CDH ; 14D7 ........
-        DB      40H,15H,20H,0F1H,21H,00H,00H,0E5H ; 14DF @. .!...
-        DB      21H,0B0H,41H,0CDH,26H,33H,0E5H,22H ; 14E7 !.A.&3."
-        DB      0DAH,41H,01H,06H,00H,09H,7EH,23H ; 14EF .A....~#
-        DB      66H,6FH,23H,7EH,23H,5EH,23H,56H ; 14F7 fo#~#^#V
-        DB      0FEH,80H,20H,03H,0D5H,18H,25H,0FEH ; 14FF .. ...%.
-        DB      82H,0E1H,20H,20H,0E3H,0A7H,0EDH,52H ; 1507 ..  ...R
-        DB      20H,24H,0D1H,0E1H,0E5H,09H,7EH,23H ; 150F  $....~#
-        DB      66H,6FH,09H,73H,23H,72H,0E1H,0EBH ; 1517 fo.s#r..
-        DB      09H,7EH,23H,66H,6FH,23H,23H,23H ; 151F .~#fo###
-        DB      23H,73H,23H,72H,0CDH,1FH,33H,20H ; 1527 #s#r..3
-        DB      0BDH,0E1H,7CH,0B5H,28H,05H,3EH,15H ; 152F ..|.(.>.
-        DB      0C3H,59H,33H,21H,0C1H,41H,0CBH,0D6H ; 1537 .Y3!.A..
-        DB      0C9H,0CDH,1FH,33H,18H,0AH,11H,0B0H ; 153F ...3....
-        DB      41H,0EDH,53H,0C3H,41H,0CDH,26H,33H ; 1547 A.S.A.&3
-        DB      0C8H,22H,0DAH,41H,23H,23H,23H,23H ; 154F .".A####
-        DB      4EH,23H,46H,23H,0E5H,2AH,9AH,41H ; 1557 N#F#.*.A
-        DB      0E5H,60H,69H,3EH,02H,0EDH,5BH,0C3H ; 155F .`i>..[.
-        DB      41H,0CDH,35H,33H,0E1H,22H,9AH,41H ; 1567 A.53.".A
-        DB      0E1H,0C0H,3EH,14H,0C3H,59H,33H ; 156F ..>..Y3
+L148F:
+        LD      BC,(V_41B2)             ; 148F  ed4bb241
+        LD      A,B                     ; 1493  78
+        OR      C                       ; 1494  b1
+        CALL    nz,L172C                ; 1495  c42c17
+        XOR     A                       ; 1498  af
+        LD      (V_4002),A              ; 1499  320240
+        LD      (V_41E4),A              ; 149C  32e441
+        LD      HL,V_41C1               ; 149F  21c141
+        SET     1,(HL)                  ; 14A2  cbce
+        RES     4,(HL)                  ; 14A4  cba6
+        BIT     2,(HL)                  ; 14A6  cb56
+        RET     nz                      ; 14A8  c0
+        LD      HL,V_41A6               ; 14A9  21a641
+        CALL    L1545                   ; 14AC  cd4515
+        JR      z,L14B9                 ; 14AF  2808
+L14B1:
+        LD      (HL),C                  ; 14B1  71
+        INC     HL                      ; 14B2  23
+        LD      (HL),B                  ; 14B3  70
+        CALL    L1540                   ; 14B4  cd4015
+        JR      nz,L14B1                ; 14B7  20f8
+L14B9:
+        LD      HL,V_41AA               ; 14B9  21aa41
+        CALL    L1545                   ; 14BC  cd4515
+        JR      z,L14C9                 ; 14BF  2808
+L14C1:
+        LD      (HL),C                  ; 14C1  71
+        INC     HL                      ; 14C2  23
+        LD      (HL),B                  ; 14C3  70
+        CALL    L1540                   ; 14C4  cd4015
+        JR      nz,L14C1                ; 14C7  20f8
+L14C9:
+        LD      HL,V_41A8               ; 14C9  21a841
+        LD      DE,V_41AA               ; 14CC  11aa41
+        CALL    L1548                   ; 14CF  cd4815
+        JR      z,L14E3                 ; 14D2  280f
+L14D4:
+        EX      DE,HL                   ; 14D4  eb
+        LD      HL,6                    ; 14D5  210600
+        ADD     HL,BC                   ; 14D8  09
+        LD      BC,2                    ; 14D9  010200
+        LDIR                            ; 14DC  edb0
+        CALL    L1540                   ; 14DE  cd4015
+        JR      nz,L14D4                ; 14E1  20f1
+L14E3:
+        LD      HL,0                    ; 14E3  210000
+        PUSH    HL                      ; 14E6  e5
+        LD      HL,V_41B0               ; 14E7  21b041
+        CALL    LINE_SET                ; 14EA  cd2633
+L14ED:
+        PUSH    HL                      ; 14ED  e5
+        LD      (V_41DA),HL             ; 14EE  22da41
+        LD      BC,6                    ; 14F1  010600
+        ADD     HL,BC                   ; 14F4  09
+        LD      A,(HL)                  ; 14F5  7e
+        INC     HL                      ; 14F6  23
+        LD      H,(HL)                  ; 14F7  66
+        LD      L,A                     ; 14F8  6f
+        INC     HL                      ; 14F9  23
+        LD      A,(HL)                  ; 14FA  7e
+        INC     HL                      ; 14FB  23
+        LD      E,(HL)                  ; 14FC  5e
+        INC     HL                      ; 14FD  23
+        LD      D,(HL)                  ; 14FE  56
+        CP      80H                     ; 14FF  fe80
+        JR      nz,L1506                ; 1501  2003
+        PUSH    DE                      ; 1503  d5
+        JR      L152B                   ; 1504  1825
+L1506:
+        CP      82H                     ; 1506  fe82
+        POP     HL                      ; 1508  e1
+        JR      nz,L152B                ; 1509  2020
+        EX      (SP),HL                 ; 150B  e3
+        AND     A                       ; 150C  a7
+        SBC     HL,DE                   ; 150D  ed52
+        JR      nz,L1535                ; 150F  2024
+        POP     DE                      ; 1511  d1
+        POP     HL                      ; 1512  e1
+        PUSH    HL                      ; 1513  e5
+        ADD     HL,BC                   ; 1514  09
+        LD      A,(HL)                  ; 1515  7e
+        INC     HL                      ; 1516  23
+        LD      H,(HL)                  ; 1517  66
+        LD      L,A                     ; 1518  6f
+        ADD     HL,BC                   ; 1519  09
+        LD      (HL),E                  ; 151A  73
+        INC     HL                      ; 151B  23
+        LD      (HL),D                  ; 151C  72
+        POP     HL                      ; 151D  e1
+        EX      DE,HL                   ; 151E  eb
+        ADD     HL,BC                   ; 151F  09
+        LD      A,(HL)                  ; 1520  7e
+        INC     HL                      ; 1521  23
+        LD      H,(HL)                  ; 1522  66
+        LD      L,A                     ; 1523  6f
+        INC     HL                      ; 1524  23
+        INC     HL                      ; 1525  23
+        INC     HL                      ; 1526  23
+        INC     HL                      ; 1527  23
+        LD      (HL),E                  ; 1528  73
+        INC     HL                      ; 1529  23
+        LD      (HL),D                  ; 152A  72
+L152B:
+        CALL    LINE_NEXT               ; 152B  cd1f33
+        JR      nz,L14ED                ; 152E  20bd
+        POP     HL                      ; 1530  e1
+        LD      A,H                     ; 1531  7c
+        OR      L                       ; 1532  b5
+        JR      z,L153A                 ; 1533  2805
+L1535:
+        LD      A,15H                   ; 1535  3e15
+        JP      ERROR                   ; 1537  c35933
+L153A:
+        LD      HL,V_41C1               ; 153A  21c141
+        SET     2,(HL)                  ; 153D  cbd6
+        RET                             ; 153F  c9
+L1540:
+        CALL    LINE_NEXT               ; 1540  cd1f33
+        JR      L154F                   ; 1543  180a
+L1545:
+        LD      DE,V_41B0               ; 1545  11b041
+L1548:
+        LD      (V_41C3),DE             ; 1548  ed53c341
+        CALL    LINE_SET                ; 154C  cd2633
+L154F:
+        RET     z                       ; 154F  c8
+        LD      (V_41DA),HL             ; 1550  22da41
+        INC     HL                      ; 1553  23
+        INC     HL                      ; 1554  23
+        INC     HL                      ; 1555  23
+        INC     HL                      ; 1556  23
+        LD      C,(HL)                  ; 1557  4e
+        INC     HL                      ; 1558  23
+        LD      B,(HL)                  ; 1559  46
+        INC     HL                      ; 155A  23
+        PUSH    HL                      ; 155B  e5
+        LD      HL,(V_419A)             ; 155C  2a9a41
+        PUSH    HL                      ; 155F  e5
+        LD      H,B                     ; 1560  60
+        LD      L,C                     ; 1561  69
+        LD      A,2                     ; 1562  3e02
+        LD      DE,(V_41C3)             ; 1564  ed5bc341
+        CALL    LINE_FIND               ; 1568  cd3533
+        POP     HL                      ; 156B  e1
+        LD      (V_419A),HL             ; 156C  229a41
+        POP     HL                      ; 156F  e1
+        RET     nz                      ; 1570  c0
+        LD      A,14H                   ; 1571  3e14
+        JP      ERROR                   ; 1573  c35933
 X_STOP:
-        LD      HL,41ACH                ; 1576  21ac41
+        LD      HL,V_41AC               ; 1576  21ac41
         CALL    LINE_SET                ; 1579  cd2633
         JR      z,L1592                 ; 157C  2814
 L157E:
@@ -2198,14 +2617,28 @@ L158D:
         CALL    LINE_NEXT               ; 158D  cd1f33
         JR      nz,L157E                ; 1590  20ec
 L1592:
-        LD      HL,41C1H                ; 1592  21c141
+        LD      HL,V_41C1               ; 1592  21c141
         RES     1,(HL)                  ; 1595  cb8e
         JP      L0258                   ; 1597  c35802
-        DB      21H,9EH,41H,06H,16H,36H,00H,23H ; 159A !.A..6.#
-        DB      10H,0FBH,21H,0ADH,43H,22H,9CH,41H ; 15A2 ..!.C".A
-        DB      0AFH,32H,0C1H,41H,21H,0DH,42H,22H ; 15AA .2.A!.B"
-        DB      0F1H,41H,22H,0F3H,41H,21H,0FBH,41H ; 15B2 .A".A!.A
-        DB      22H,0F7H,41H,0C3H,6DH,04H,0C9H ; 15BA ".A.m..
+L159A:
+        LD      HL,V_419E               ; 159A  219e41
+        LD      B,16H                   ; 159D  0616
+L159F:
+        LD      (HL),0                  ; 159F  3600
+        INC     HL                      ; 15A1  23
+        DJNZ    L159F                   ; 15A2  10fb
+        LD      HL,STACK_TOP            ; 15A4  21ad43
+        LD      (SP_INIT),HL            ; 15A7  229c41
+        XOR     A                       ; 15AA  af
+        LD      (V_41C1),A              ; 15AB  32c141
+        LD      HL,V_420D               ; 15AE  210d42
+        LD      (V_41F1),HL             ; 15B1  22f141
+        LD      (V_41F3),HL             ; 15B4  22f341
+        LD      HL,CHANTAB              ; 15B7  21fb41
+        LD      (V_41F7),HL             ; 15BA  22f741
+        JP      L046D                   ; 15BD  c36d04
+L15C0:
+        RET                             ; 15C0  c9
 
 ;=====================================================================
 ; AUSFUEHRUNGSROUTINEN (X_xxx) DER BEFEHLE UND FUNKTIONEN
@@ -2302,11 +2735,13 @@ L1629:
         RET                             ; 162F  c9
 X_CALL:
         CALL    FAC_TO_INT              ; 1630  cd851f
-        LD      DE,163AH                ; 1633  113a16
+        LD      DE,L163A                ; 1633  113a16
         PUSH    IX                      ; 1636  dde5
         PUSH    DE                      ; 1638  d5
         JP      (HL)                    ; 1639  e9
-        DB      0DDH,0E1H,0C9H          ; 163A ...
+L163A:
+        POP     IX                      ; 163A  dde1
+        RET                             ; 163C  c9
 X_OUTCHAR:
         CALL    FAC_TO_INT              ; 163D  cd851f
         LD      A,L                     ; 1640  7d
@@ -2348,11 +2783,11 @@ X_SGN:
         INC     HL                      ; 1674  23
         JR      L16C9                   ; 1675  1852
 X_TOP:
-        LD      HL,(41B7H)              ; 1677  2ab741
+        LD      HL,(RAMTOP)             ; 1677  2ab741
         JR      L16C9                   ; 167A  184d
 X_SIZE:
-        LD      HL,(41B7H)              ; 167C  2ab741
-        LD      DE,(419CH)              ; 167F  ed5b9c41
+        LD      HL,(RAMTOP)             ; 167C  2ab741
+        LD      DE,(SP_INIT)            ; 167F  ed5b9c41
         AND     A                       ; 1683  a7
         SBC     HL,DE                   ; 1684  ed52
         JR      L16C9                   ; 1686  1841
@@ -2408,17 +2843,17 @@ X_IN:
         IN      L,(C)                   ; 16D0  ed68
         JR      L16C7                   ; 16D2  18f3
 X_INCHAR:
-        LD      IY,(41F7H)              ; 16D4  fd2af741
+        LD      IY,(V_41F7)             ; 16D4  fd2af741
         LD      A,IYL                   ; 16D8  fd7d
         SUB     0FBH                    ; 16DA  d6fb
         JR      z,L16E3                 ; 16DC  2805
         CALL    L3550                   ; 16DE  cd5035
         JR      L16F4                   ; 16E1  1811
 L16E3:
-        LD      A,(41E4H)               ; 16E3  3ae441
+        LD      A,(V_41E4)              ; 16E3  3ae441
         LD      L,A                     ; 16E6  6f
         XOR     A                       ; 16E7  af
-        LD      (41E4H),A               ; 16E8  32e441
+        LD      (V_41E4),A              ; 16E8  32e441
         OR      L                       ; 16EB  b5
         JR      nz,L16C7                ; 16EC  20d9
 L16EE:
@@ -2429,16 +2864,16 @@ L16F4:
         LD      L,A                     ; 16F4  6f
         JR      L16C7                   ; 16F5  18d0
 X_ERRN:
-        LD      A,(41E3H)               ; 16F7  3ae341
+        LD      A,(V_41E3)              ; 16F7  3ae341
         JR      L16F4                   ; 16FA  18f8
 X_ERLN:
-        LD      HL,(41E1H)              ; 16FC  2ae141
+        LD      HL,(V_41E1)             ; 16FC  2ae141
         JR      L16C9                   ; 16FF  18c8
 X_RESTORE:
         CALL    FETCH_WORD              ; 1701  cd661e
         LD      A,H                     ; 1704  7c
         OR      L                       ; 1705  b5
-        LD      BC,(41B2H)              ; 1706  ed4bb241
+        LD      BC,(V_41B2)             ; 1706  ed4bb241
         JR      z,L1728                 ; 170A  281c
         LD      DE,6                    ; 170C  110600
         ADD     HL,DE                   ; 170F  19
@@ -2451,7 +2886,7 @@ X_RESTORE:
         INC     HL                      ; 1718  23
         LD      D,(HL)                  ; 1719  56
         EX      DE,HL                   ; 171A  eb
-        LD      DE,41B2H                ; 171B  11b241
+        LD      DE,V_41B2               ; 171B  11b241
         LD      A,2                     ; 171E  3e02
         CALL    LINE_FIND               ; 1720  cd3533
 L1723:
@@ -2464,21 +2899,21 @@ L1728:
 L172C:
         LD      HL,4                    ; 172C  210400
         ADD     HL,BC                   ; 172F  09
-        LD      (41DEH),HL              ; 1730  22de41
+        LD      (V_41DE),HL             ; 1730  22de41
         LD      A,1                     ; 1733  3e01
-        LD      (41E0H),A               ; 1735  32e041
+        LD      (V_41E0),A              ; 1735  32e041
         RET                             ; 1738  c9
 L1739:
-        LD      HL,(41DEH)              ; 1739  2ade41
+        LD      HL,(V_41DE)             ; 1739  2ade41
         LD      A,H                     ; 173C  7c
         OR      L                       ; 173D  b5
         JR      z,L1754                 ; 173E  2814
-        LD      A,(41E0H)               ; 1740  3ae041
+        LD      A,(V_41E0)              ; 1740  3ae041
         DEC     A                       ; 1743  3d
         CP      (HL)                    ; 1744  be
         INC     A                       ; 1745  3c
         INC     A                       ; 1746  3c
-        LD      (41E0H),A               ; 1747  32e041
+        LD      (V_41E0),A              ; 1747  32e041
         JR      c,L175E                 ; 174A  3812
         DEC     HL                      ; 174C  2b
         DEC     HL                      ; 174D  2b
@@ -2548,7 +2983,7 @@ L17B5:
         POP     IX                      ; 17B5  dde1
         PUSH    BC                      ; 17B7  c5
         PUSH    IX                      ; 17B8  dde5
-        LD      HL,41C1H                ; 17BA  21c141
+        LD      HL,V_41C1               ; 17BA  21c141
         BIT     4,(HL)                  ; 17BD  cb66
         JR      z,L17CB                 ; 17BF  280a
         RES     4,(HL)                  ; 17C1  cba6
@@ -2579,7 +3014,7 @@ L17D3:
         INC     IX                      ; 17F7  dd23
         INC     IX                      ; 17F9  dd23
         CALL    FETCH_WORD              ; 17FB  cd661e
-        LD      (41DAH),HL              ; 17FE  22da41
+        LD      (V_41DA),HL             ; 17FE  22da41
         POP     DE                      ; 1801  d1
         RET                             ; 1802  c9
 L1803:
@@ -2588,7 +3023,7 @@ L1803:
 L1805:
         INC     IX                      ; 1805  dd23
         INC     IX                      ; 1807  dd23
-        LD      HL,41C1H                ; 1809  21c141
+        LD      HL,V_41C1               ; 1809  21c141
         SET     4,(HL)                  ; 180C  cbe6
         CALL    FETCH_WORD              ; 180E  cd661e
         EX      DE,HL                   ; 1811  eb
@@ -2627,7 +3062,7 @@ L1847:
         POP     DE                      ; 1847  d1
         RET                             ; 1848  c9
 L1849:
-        LD      HL,41C2H                ; 1849  21c241
+        LD      HL,V_41C2               ; 1849  21c241
         BIT     1,(HL)                  ; 184C  cb4e
         RES     1,(HL)                  ; 184E  cb8e
         JR      nz,L1854                ; 1850  2002
@@ -2650,14 +3085,14 @@ L185E:
         DEC     HL                      ; 1867  2b
         DEC     HL                      ; 1868  2b
         CALL    L240A                   ; 1869  cd0a24
-        LD      HL,(4192H)              ; 186C  2a9241
+        LD      HL,(V_4192)             ; 186C  2a9241
         LD      A,15                    ; 186F  3e0f
         AND     (HL)                    ; 1871  a6
         CP      3                       ; 1872  fe03
         DEC     IX                      ; 1874  dd2b
         DEC     IX                      ; 1876  dd2b
         JP      nz,L15D1                ; 1878  c2d115
-        LD      HL,4002H                ; 187B  210240
+        LD      HL,V_4002               ; 187B  210240
         JP      L1B8C                   ; 187E  c38c1b
 L1881:
         CALL    L2430                   ; 1881  cd3024
@@ -2695,17 +3130,17 @@ L18AC:
         LD      (HL),E                  ; 18AE  73
         JP      X_RETURN                ; 18AF  c3e618
 L18B2:
-        LD      HL,41C2H                ; 18B2  21c241
+        LD      HL,V_41C2               ; 18B2  21c241
         SET     1,(HL)                  ; 18B5  cbce
 X_GOSUB:
-        LD      (41CDH),IX              ; 18B7  dd22cd41
-        LD      HL,(41DAH)              ; 18BB  2ada41
-        LD      (41CBH),HL              ; 18BE  22cb41
-        LD      HL,41CBH                ; 18C1  21cb41
-        LD      A,(41DCH)               ; 18C4  3adc41
-        LD      (41CFH),A               ; 18C7  32cf41
+        LD      (V_41CD),IX             ; 18B7  dd22cd41
+        LD      HL,(V_41DA)             ; 18BB  2ada41
+        LD      (V_41CB),HL             ; 18BE  22cb41
+        LD      HL,V_41CB               ; 18C1  21cb41
+        LD      A,(V_41DC)              ; 18C4  3adc41
+        LD      (V_41CF),A              ; 18C7  32cf41
         LD      BC,5                    ; 18CA  010500
-        LD      DE,41A0H                ; 18CD  11a041
+        LD      DE,V_41A0               ; 18CD  11a041
         CALL    L2085                   ; 18D0  cd8520
 X_GOTO:
         CALL    FETCH_WORD              ; 18D3  cd661e
@@ -2715,7 +3150,7 @@ X_GOTO:
         INC     HL                      ; 18DB  23
         LD      D,(HL)                  ; 18DC  56
 L18DD:
-        LD      HL,41DBH                ; 18DD  21db41
+        LD      HL,V_41DB               ; 18DD  21db41
         LD      (HL),D                  ; 18E0  72
         DEC     HL                      ; 18E1  2b
         LD      (HL),E                  ; 18E2  73
@@ -2723,8 +3158,8 @@ L18DD:
         POP     DE                      ; 18E4  d1
         RET                             ; 18E5  c9
 X_RETURN:
-        LD      HL,41A0H                ; 18E6  21a041
-        LD      (419AH),HL              ; 18E9  229a41
+        LD      HL,V_41A0               ; 18E6  21a041
+        LD      (V_419A),HL             ; 18E9  229a41
         LD      C,7                     ; 18EC  0e07
         CALL    L204B                   ; 18EE  cd4b20
         LD      A,3CH                   ; 18F1  3e3c
@@ -2735,8 +3170,8 @@ X_RETURN:
         LD      B,(HL)                  ; 18F9  46
         INC     HL                      ; 18FA  23
         LD      A,(HL)                  ; 18FB  7e
-        LD      (41DCH),A               ; 18FC  32dc41
-        LD      (41DAH),DE              ; 18FF  ed53da41
+        LD      (V_41DC),A              ; 18FC  32dc41
+        LD      (V_41DA),DE             ; 18FF  ed53da41
         INC     BC                      ; 1903  03
         INC     BC                      ; 1904  03
         PUSH    BC                      ; 1905  c5
@@ -2749,22 +3184,22 @@ L1909:
         INC     IX                      ; 190F  dd23
         INC     IX                      ; 1911  dd23
         CALL    RUNLOOP                 ; 1913  cd6014
-        LD      A,(4002H)               ; 1916  3a0240
+        LD      A,(V_4002)              ; 1916  3a0240
         PUSH    AF                      ; 1919  f5
         CALL    RUNLOOP                 ; 191A  cd6014
         POP     BC                      ; 191D  c1
         LD      C,B                     ; 191E  48
-        LD      A,(4002H)               ; 191F  3a0240
+        LD      A,(V_4002)              ; 191F  3a0240
         SUB     C                       ; 1922  91
         LD      B,A                     ; 1923  47
-        LD      DE,4003H                ; 1924  110340
+        LD      DE,V_4003               ; 1924  110340
         LD      H,0                     ; 1927  2600
         LD      L,C                     ; 1929  69
         ADD     HL,DE                   ; 192A  19
         EX      DE,HL                   ; 192B  eb
         CALL    L1FE9                   ; 192C  cde91f
         XOR     A                       ; 192F  af
-        LD      (4002H),A               ; 1930  320240
+        LD      (V_4002),A              ; 1930  320240
         JR      L1945                   ; 1933  1810
 L1935:
         PUSH    IX                      ; 1935  dde5
@@ -2966,7 +3401,7 @@ X_ASGN:
         JR      z,L1A89                 ; 1A74  2813
         PUSH    HL                      ; 1A76  e5
         PUSH    DE                      ; 1A77  d5
-        LD      DE,41F6H                ; 1A78  11f641
+        LD      DE,V_41F6               ; 1A78  11f641
         AND     A                       ; 1A7B  a7
         SBC     HL,DE                   ; 1A7C  ed52
         POP     DE                      ; 1A7E  d1
@@ -2984,9 +3419,9 @@ L1A89:
         JR      z,L1AD7                 ; 1A8E  2847
         PUSH    HL                      ; 1A90  e5
         AND     A                       ; 1A91  a7
-        LD      HL,41F6H                ; 1A92  21f641
+        LD      HL,V_41F6               ; 1A92  21f641
         SBC     HL,DE                   ; 1A95  ed52
-        LD      HL,4231H                ; 1A97  213142
+        LD      HL,V_4231               ; 1A97  213142
         JR      z,L1AA2                 ; 1A9A  2806
         LD      BC,0B9H                 ; 1A9C  01b900
         CALL    L20B5                   ; 1A9F  cdb520
@@ -3040,7 +3475,7 @@ L1AD7:
         LD      (HL),D                  ; 1AD9  72
         DEC     HL                      ; 1ADA  2b
         LD      (HL),E                  ; 1ADB  73
-        LD      BC,41F5H                ; 1ADC  01f541
+        LD      BC,V_41F5               ; 1ADC  01f541
         AND     A                       ; 1ADF  a7
         SBC     HL,BC                   ; 1AE0  ed42
         RET     nz                      ; 1AE2  c0
@@ -3061,7 +3496,7 @@ L1AF9:
 L1AFB:
         CALL    L3628                   ; 1AFB  cd2836
         CALL    L0F6F                   ; 1AFE  cd6f0f
-        LD      A,(4001H)               ; 1B01  3a0140
+        LD      A,(V_4001)              ; 1B01  3a0140
         CP      20H                     ; 1B04  fe20
         PUSH    AF                      ; 1B06  f5
         JR      z,L1B0D                 ; 1B07  2804
@@ -3070,7 +3505,7 @@ L1AFB:
 L1B0D:
         CALL    L0F6F                   ; 1B0D  cd6f0f
 L1B10:
-        LD      A,(4000H)               ; 1B10  3a0040
+        LD      A,(V_4000)              ; 1B10  3a0040
         CP      89H                     ; 1B13  fe89
         LD      B,1                     ; 1B15  0601
         JR      z,L1B39                 ; 1B17  2820
@@ -3081,10 +3516,10 @@ L1B10:
 L1B21:
         LD      A,0C2H                  ; 1B21  3ec2
         CALL    ERROR                   ; 1B23  cd5933
-        LD      HL,41FBH                ; 1B26  21fb41
-        LD      (41F7H),HL              ; 1B29  22f741
+        LD      HL,CHANTAB              ; 1B26  21fb41
+        LD      (V_41F7),HL             ; 1B29  22f741
         LD      HL,0                    ; 1B2C  210000
-        LD      (4088H),HL              ; 1B2F  228840
+        LD      (ED_RPTR),HL            ; 1B2F  228840
         CALL    CON_CR                  ; 1B32  cd2f36
         POP     AF                      ; 1B35  f1
         JR      L1AFB                   ; 1B36  18c3
@@ -3093,10 +3528,10 @@ L1B38:
 L1B39:
         LD      A,B                     ; 1B39  78
         LD      (FAC_TYPE),A            ; 1B3A  32e142
-        LD      DE,4003H                ; 1B3D  110340
+        LD      DE,V_4003               ; 1B3D  110340
         CALL    FAC_LOAD                ; 1B40  cd9f26
         CALL    L0F6F                   ; 1B43  cd6f0f
-        LD      A,(4000H)               ; 1B46  3a0040
+        LD      A,(V_4000)              ; 1B46  3a0040
         CP      47H                     ; 1B49  fe47
         JR      nz,L1B21                ; 1B4B  20d4
         POP     AF                      ; 1B4D  f1
@@ -3113,16 +3548,16 @@ L1B62:
         CALL    CON_CR                  ; 1B62  cd2f36
 L1B65:
         CALL    L3628                   ; 1B65  cd2836
-        LD      IY,(41F7H)              ; 1B68  fd2af741
-        LD      HL,4003H                ; 1B6C  210340
+        LD      IY,(V_41F7)             ; 1B68  fd2af741
+        LD      HL,V_4003               ; 1B6C  210340
         LD      B,0FFH                  ; 1B6F  06ff
 L1B71:
         CALL    L3550                   ; 1B71  cd5035
         LD      (HL),A                  ; 1B74  77
         INC     HL                      ; 1B75  23
-        LD      DE,(4088H)              ; 1B76  ed5b8840
+        LD      DE,(ED_RPTR)            ; 1B76  ed5b8840
         INC     DE                      ; 1B7A  13
-        LD      (4088H),DE              ; 1B7B  ed538840
+        LD      (ED_RPTR),DE            ; 1B7B  ed538840
         CP      1EH                     ; 1B7F  fe1e
         JR      z,L1B86                 ; 1B81  2803
         DJNZ    L1B71                   ; 1B83  10ec
@@ -3130,7 +3565,7 @@ L1B71:
 L1B86:
         LD      A,B                     ; 1B86  78
         CPL                             ; 1B87  2f
-        LD      HL,4002H                ; 1B88  210240
+        LD      HL,V_4002               ; 1B88  210240
         LD      (HL),A                  ; 1B8B  77
 L1B8C:
         PUSH    HL                      ; 1B8C  e5
@@ -3172,7 +3607,7 @@ L1BBB:
         LD      (HL),E                  ; 1BBE  73
 L1BBF:
         XOR     A                       ; 1BBF  af
-        LD      (4002H),A               ; 1BC0  320240
+        LD      (V_4002),A              ; 1BC0  320240
         RET                             ; 1BC3  c9
 X_FIX:
         CALL    FETCH_WORD              ; 1BC4  cd661e
@@ -3195,17 +3630,17 @@ L1BDA:
         OR      H                       ; 1BDD  b4
         LD      E,A                     ; 1BDE  5f
         LD      D,L                     ; 1BDF  55
-        LD      (42FBH),DE              ; 1BE0  ed53fb42
+        LD      (V_42FB),DE             ; 1BE0  ed53fb42
         RET                             ; 1BE4  c9
 L1BE5:
-        LD      IY,(41F3H)              ; 1BE5  fd2af341
+        LD      IY,(V_41F3)             ; 1BE5  fd2af341
 L1BE9:
-        LD      DE,4003H                ; 1BE9  110340
+        LD      DE,V_4003               ; 1BE9  110340
         CALL    NUMBER_FORMAT           ; 1BEC  cdb22f
-        LD      HL,4004H                ; 1BEF  210440
+        LD      HL,V_4004               ; 1BEF  210440
         JP      L3620                   ; 1BF2  c32036
 L1BF5:
-        LD      IY,(41F3H)              ; 1BF5  fd2af341
+        LD      IY,(V_41F3)             ; 1BF5  fd2af341
 L1BF9:
         CALL    L1E80                   ; 1BF9  cd801e
         RET     z                       ; 1BFC  c8
@@ -3229,7 +3664,7 @@ L1C0F:
 X_COL:
         CALL    FAC_TO_INT              ; 1C15  cd851f
         LD      B,L                     ; 1C18  45
-        LD      IY,(41F3H)              ; 1C19  fd2af341
+        LD      IY,(V_41F3)             ; 1C19  fd2af341
         LD      A,(IY+4)                ; 1C1D  fd7e04
         SUB     (IY+3)                  ; 1C20  fd9603
         CP      B                       ; 1C23  b8
@@ -3245,11 +3680,11 @@ L1C2C:
         JR      L1C0C                   ; 1C30  18da
 X_OPEN:
         CALL    X_GET                   ; 1C32  cd461c
-        LD      IY,(41F9H)              ; 1C35  fd2af941
+        LD      IY,(V_41F9)             ; 1C35  fd2af941
         JP      L3583                   ; 1C39  c38335
 X_CLOSE:
         CALL    X_GET                   ; 1C3C  cd461c
-        LD      IY,(41F9H)              ; 1C3F  fd2af941
+        LD      IY,(V_41F9)             ; 1C3F  fd2af941
         JP      L35AB                   ; 1C43  c3ab35
 X_GET:
         CALL    FETCH_WORD              ; 1C46  cd661e
@@ -3261,7 +3696,7 @@ X_GET:
         LD      A,51H                   ; 1C4E  3e51
         JP      z,ERROR                 ; 1C50  ca5933
         EX      DE,HL                   ; 1C53  eb
-        LD      (41F9H),HL              ; 1C54  22f941
+        LD      (V_41F9),HL             ; 1C54  22f941
         RET                             ; 1C57  c9
 L1C58:
         CALL    L1E97                   ; 1C58  cd971e
@@ -3275,7 +3710,7 @@ L1C58:
 L1C67:
         LD      B,C                     ; 1C67  41
 L1C68:
-        LD      IY,(41F9H)              ; 1C68  fd2af941
+        LD      IY,(V_41F9)             ; 1C68  fd2af941
         CALL    CH_OUT                  ; 1C6C  cddb34
 L1C6F:
         LD      A,(DE)                  ; 1C6F  1a
@@ -3286,14 +3721,14 @@ L1C6F:
 L1C77:
         CALL    L1E80                   ; 1C77  cd801e
         JR      nz,L1C7F                ; 1C7A  2003
-        LD      DE,34ACH                ; 1C7C  11ac34
+        LD      DE,D34AC                ; 1C7C  11ac34
 L1C7F:
         INC     B                       ; 1C7F  04
         DEC     DE                      ; 1C80  1b
         LD      A,3                     ; 1C81  3e03
         JR      L1C68                   ; 1C83  18e3
 L1C85:
-        LD      IY,(41F9H)              ; 1C85  fd2af941
+        LD      IY,(V_41F9)             ; 1C85  fd2af941
         CALL    L1E97                   ; 1C89  cd971e
         LD      B,C                     ; 1C8C  41
         LD      C,A                     ; 1C8D  4f
@@ -3309,12 +3744,12 @@ L1C97:
         DJNZ    L1C97                   ; 1C9C  10f9
         RET                             ; 1C9E  c9
 L1C9F:
-        LD      IY,(41F9H)              ; 1C9F  fd2af941
+        LD      IY,(V_41F9)             ; 1C9F  fd2af941
         CALL    L3550                   ; 1CA3  cd5035
         CP      3                       ; 1CA6  fe03
         JR      nz,L1C92                ; 1CA8  20e8
         CALL    L3550                   ; 1CAA  cd5035
-        LD      DE,4002H                ; 1CAD  110240
+        LD      DE,V_4002               ; 1CAD  110240
         PUSH    DE                      ; 1CB0  d5
         LD      (DE),A                  ; 1CB1  12
         INC     DE                      ; 1CB2  13
@@ -3387,7 +3822,7 @@ L1D0D:
         CALL    L1E80                   ; 1D0D  cd801e
         JR      L1D2C                   ; 1D10  181a
 X_STR:
-        LD      DE,40EAH                ; 1D12  11ea40
+        LD      DE,V_40EA               ; 1D12  11ea40
         PUSH    DE                      ; 1D15  d5
         CALL    NUMBER_FORMAT           ; 1D16  cdb22f
         POP     HL                      ; 1D19  e1
@@ -3396,15 +3831,16 @@ X_STR:
 X_CHR:
         CALL    FAC_TO_INT              ; 1D1D  cd851f
         LD      A,L                     ; 1D20  7d
-        LD      HL,42E3H                ; 1D21  21e342
+        LD      HL,V_42E3               ; 1D21  21e342
         LD      (HL),A                  ; 1D24  77
         LD      B,1                     ; 1D25  0601
         JR      L1D2B                   ; 1D27  1802
-        DB      46H,23H                 ; 1D29 F#
+        LD      B,(HL)                  ; 1D29  46
+        INC     HL                      ; 1D2A  23
 L1D2B:
         EX      DE,HL                   ; 1D2B  eb
 L1D2C:
-        LD      HL,4002H                ; 1D2C  210240
+        LD      HL,V_4002               ; 1D2C  210240
         LD      A,B                     ; 1D2F  78
         OR      A                       ; 1D30  b7
         RET     z                       ; 1D31  c8
@@ -3425,7 +3861,7 @@ L1D3D:
         LD      B,0                     ; 1D42  0600
         EX      DE,HL                   ; 1D44  eb
         LDIR                            ; 1D45  edb0
-        LD      (4002H),A               ; 1D47  320240
+        LD      (V_4002),A              ; 1D47  320240
         RET                             ; 1D4A  c9
 L1D4B:
         LD      A,22H                   ; 1D4B  3e22
@@ -3433,20 +3869,20 @@ L1D4B:
 L1D50:
         CALL    FAC_TO_INT              ; 1D50  cd851f
         PUSH    HL                      ; 1D53  e5
-        LD      DE,(41B7H)              ; 1D54  ed5bb741
+        LD      DE,(RAMTOP)             ; 1D54  ed5bb741
         AND     A                       ; 1D58  a7
         SBC     HL,DE                   ; 1D59  ed52
         EX      DE,HL                   ; 1D5B  eb
         POP     HL                      ; 1D5C  e1
         RET     z                       ; 1D5D  c8
         JP      nc,L2024                ; 1D5E  d22420
-        LD      DE,(419CH)              ; 1D61  ed5b9c41
+        LD      DE,(SP_INIT)            ; 1D61  ed5b9c41
         AND     A                       ; 1D65  a7
         SBC     HL,DE                   ; 1D66  ed52
         LD      A,4                     ; 1D68  3e04
         JP      c,ERROR                 ; 1D6A  da5933
         ADD     HL,DE                   ; 1D6D  19
-        LD      (41B7H),HL              ; 1D6E  22b741
+        LD      (RAMTOP),HL             ; 1D6E  22b741
         RET                             ; 1D71  c9
 ; ---- Opcode D0h: Grafik-Unterfunktion (GIN,OFF,COL,...) ueber GSUBTAB
 OP_GSUB:
@@ -3465,9 +3901,18 @@ L1D7F:
         JP      (HL)                    ; 1D83  e9
 ; ---- GSUBTAB: 12 Unterfunktionen, alle ausser OFF zeigen auf DRV_DUMMY
 GSUBTAB:
-        DB      03H,37H,0EFH,3DH,03H,37H,03H,37H ; 1D84 .7.=.7.7
-        DB      03H,37H,03H,37H,03H,37H,03H,37H ; 1D8C .7.7.7.7
-        DB      03H,37H,03H,37H,03H,37H,03H,37H ; 1D94 .7.7.7.7
+        DW      DRV_DUMMY               ; 1D84  0337
+        DW      G_CLEAR                 ; 1D86  ef3d
+        DW      DRV_DUMMY               ; 1D88  0337
+        DW      DRV_DUMMY               ; 1D8A  0337
+        DW      DRV_DUMMY               ; 1D8C  0337
+        DW      DRV_DUMMY               ; 1D8E  0337
+        DW      DRV_DUMMY               ; 1D90  0337
+        DW      DRV_DUMMY               ; 1D92  0337
+        DW      DRV_DUMMY               ; 1D94  0337
+        DW      DRV_DUMMY               ; 1D96  0337
+        DW      DRV_DUMMY               ; 1D98  0337
+        DW      DRV_DUMMY               ; 1D9A  0337
 ; ---- PLOT: nur Treiber-Haken 3703H (leer)
 OP_PLOT:
         LD      HL,DRV_DUMMY            ; 1D9C  210337
@@ -3805,7 +4250,7 @@ L1F6E:
         JR      nc,L1F79                ; 1F76  3001
         DEC     HL                      ; 1F78  2b
 L1F79:
-        LD      (42E4H),HL              ; 1F79  22e442
+        LD      (V_42E4),HL             ; 1F79  22e442
         LD      A,1                     ; 1F7C  3e01
         LD      (FAC_TYPE),A            ; 1F7E  32e142
         RET                             ; 1F81  c9
@@ -3941,7 +4386,7 @@ L201D:
         LD      C,4                     ; 2021  0e04
         RET                             ; 2023  c9
 L2024:
-        LD      HL,(41B7H)              ; 2024  2ab741
+        LD      HL,(RAMTOP)             ; 2024  2ab741
 L2027:
         INC     HL                      ; 2027  23
         LD      A,(HL)                  ; 2028  7e
@@ -3954,7 +4399,7 @@ L2027:
         LD      A,D                     ; 2031  7a
         OR      E                       ; 2032  b3
         JR      nz,L2027                ; 2033  20f2
-        LD      (41B7H),HL              ; 2035  22b741
+        LD      (RAMTOP),HL             ; 2035  22b741
         RET                             ; 2038  c9
 L2039:
         LD      A,83H                   ; 2039  3e83
@@ -3962,7 +4407,7 @@ L2039:
         CALL    ERROR                   ; 203C  cd5933
         POP     HL                      ; 203F  e1
         DEC     HL                      ; 2040  2b
-        LD      (41B7H),HL              ; 2041  22b741
+        LD      (RAMTOP),HL             ; 2041  22b741
         INC     HL                      ; 2044  23
         CALL    L255D                   ; 2045  cd5d25
         JP      CH_CRLF                 ; 2048  c3ce35
@@ -3978,12 +4423,12 @@ L2053:
 L2057:
         PUSH    HL                      ; 2057  e5
         ADD     HL,BC                   ; 2058  09
-        LD      DE,(419CH)              ; 2059  ed5b9c41
+        LD      DE,(SP_INIT)            ; 2059  ed5b9c41
         AND     A                       ; 205D  a7
         SBC     HL,DE                   ; 205E  ed52
         POP     HL                      ; 2060  e1
         JR      nz,L2068                ; 2061  2005
-        LD      (419CH),HL              ; 2063  229c41
+        LD      (SP_INIT),HL            ; 2063  229c41
         JR      L2078                   ; 2066  1810
 L2068:
         LD      A,B                     ; 2068  78
@@ -3994,7 +4439,7 @@ L2068:
         JR      c,L2072                 ; 206F  3801
         LD      C,A                     ; 2071  4f
 L2072:
-        LD      DE,41A4H                ; 2072  11a441
+        LD      DE,V_41A4               ; 2072  11a441
         CALL    L32FB                   ; 2075  cdfb32
 L2078:
         INC     HL                      ; 2078  23
@@ -4007,7 +4452,7 @@ L2078:
         AND     A                       ; 207F  a7
         RET                             ; 2080  c9
 L2081:
-        LD      DE,(419AH)              ; 2081  ed5b9a41
+        LD      DE,(V_419A)             ; 2081  ed5b9a41
 L2085:
         PUSH    DE                      ; 2085  d5
         PUSH    HL                      ; 2086  e5
@@ -4026,13 +4471,13 @@ L2085:
         POP     DE                      ; 2096  d1
         JP      L32FB                   ; 2097  c3fb32
 L209A:
-        LD      HL,4002H                ; 209A  210240
+        LD      HL,V_4002               ; 209A  210240
 L209D:
         LD      C,(HL)                  ; 209D  4e
         INC     C                       ; 209E  0c
         LD      B,0                     ; 209F  0600
 L20A1:
-        LD      DE,(419AH)              ; 20A1  ed5b9a41
+        LD      DE,(V_419A)             ; 20A1  ed5b9a41
         PUSH    DE                      ; 20A5  d5
         PUSH    HL                      ; 20A6  e5
         CALL    L20B5                   ; 20A7  cdb520
@@ -4042,12 +4487,12 @@ L20A1:
         LDIR                            ; 20AD  edb0
         POP     DE                      ; 20AF  d1
         POP     HL                      ; 20B0  e1
-        LD      (419AH),HL              ; 20B1  229a41
+        LD      (V_419A),HL             ; 20B1  229a41
         RET                             ; 20B4  c9
 L20B5:
-        LD      DE,41A4H                ; 20B5  11a441
+        LD      DE,V_41A4               ; 20B5  11a441
         LD      HL,0FFFFH               ; 20B8  21ffff
-        LD      (41C3H),HL              ; 20BB  22c341
+        LD      (V_41C3),HL             ; 20BB  22c341
         LD      A,B                     ; 20BE  78
         AND     A                       ; 20BF  a7
         JR      nz,L20C8                ; 20C0  2006
@@ -4068,7 +4513,7 @@ L20C8:
         AND     A                       ; 20D8  a7
         SBC     HL,BC                   ; 20D9  ed42
         EX      DE,HL                   ; 20DB  eb
-        LD      HL,(41C3H)              ; 20DC  2ac341
+        LD      HL,(V_41C3)             ; 20DC  2ac341
         SBC     HL,DE                   ; 20DF  ed52
         JR      c,L20F7                 ; 20E1  3814
         PUSH    DE                      ; 20E3  d5
@@ -4077,21 +4522,21 @@ L20C8:
         SBC     HL,DE                   ; 20E8  ed52
         POP     DE                      ; 20EA  d1
         JR      c,L20F7                 ; 20EB  380a
-        LD      HL,(419AH)              ; 20ED  2a9a41
-        LD      (41C5H),HL              ; 20F0  22c541
-        LD      (41C3H),DE              ; 20F3  ed53c341
+        LD      HL,(V_419A)             ; 20ED  2a9a41
+        LD      (V_41C5),HL             ; 20F0  22c541
+        LD      (V_41C3),DE             ; 20F3  ed53c341
 L20F7:
         CALL    LINE_NEXT               ; 20F7  cd1f33
         JR      L20C8                   ; 20FA  18cc
 L20FC:
         POP     BC                      ; 20FC  c1
-        LD      HL,(41C3H)              ; 20FD  2ac341
+        LD      HL,(V_41C3)             ; 20FD  2ac341
         LD      A,H                     ; 2100  7c
         AND     L                       ; 2101  a5
         INC     A                       ; 2102  3c
         JR      nz,L212F                ; 2103  202a
-        LD      HL,(41B7H)              ; 2105  2ab741
-        LD      DE,(419CH)              ; 2108  ed5b9c41
+        LD      HL,(RAMTOP)             ; 2105  2ab741
+        LD      DE,(SP_INIT)            ; 2108  ed5b9c41
         SBC     HL,DE                   ; 210C  ed52
         SBC     HL,BC                   ; 210E  ed42
         LD      A,2                     ; 2110  3e02
@@ -4099,11 +4544,11 @@ L20FC:
         LD      H,B                     ; 2115  60
         LD      L,C                     ; 2116  69
         ADD     HL,DE                   ; 2117  19
-        LD      (419CH),HL              ; 2118  229c41
+        LD      (SP_INIT),HL            ; 2118  229c41
         PUSH    DE                      ; 211B  d5
         PUSH    BC                      ; 211C  c5
         EX      DE,HL                   ; 211D  eb
-        LD      HL,(41B7H)              ; 211E  2ab741
+        LD      HL,(RAMTOP)             ; 211E  2ab741
         SBC     HL,DE                   ; 2121  ed52
         LD      DE,0C8H                 ; 2123  11c800
         SBC     HL,DE                   ; 2126  ed52
@@ -4111,12 +4556,12 @@ L20FC:
         CALL    c,ERROR                 ; 212A  dc5933
         JR      L2140                   ; 212D  1811
 L212F:
-        LD      DE,(41C5H)              ; 212F  ed5bc541
+        LD      DE,(V_41C5)             ; 212F  ed5bc541
         CALL    L330C                   ; 2133  cd0c33
         PUSH    HL                      ; 2136  e5
         PUSH    BC                      ; 2137  c5
         ADD     HL,BC                   ; 2138  09
-        LD      BC,(41C3H)              ; 2139  ed4bc341
+        LD      BC,(V_41C3)             ; 2139  ed4bc341
         CALL    L2057                   ; 213D  cd5720
 L2140:
         POP     BC                      ; 2140  c1
@@ -4124,7 +4569,7 @@ L2140:
         RET                             ; 2142  c9
 L2143:
         LD      A,6                     ; 2143  3e06
-        LD      DE,41ACH                ; 2145  11ac41
+        LD      DE,V_41AC               ; 2145  11ac41
         PUSH    HL                      ; 2148  e5
         CALL    LINE_FIND               ; 2149  cd3533
         POP     HL                      ; 214C  e1
@@ -4133,9 +4578,9 @@ L2143:
         BIT     1,A                     ; 214F  cb4f
         RET     nz                      ; 2151  c0
         PUSH    HL                      ; 2152  e5
-        LD      (41CBH),HL              ; 2153  22cb41
+        LD      (V_41CB),HL             ; 2153  22cb41
         BIT     4,L                     ; 2156  cb65
-        LD      HL,41D2H                ; 2158  21d241
+        LD      HL,V_41D2               ; 2158  21d241
         LD      B,6                     ; 215B  0606
 L215D:
         LD      (HL),0                  ; 215D  3600
@@ -4150,13 +4595,29 @@ L2169:
         EX      DE,HL                   ; 216C  eb
         POP     HL                      ; 216D  e1
         RET                             ; 216E  c9
-        DB      0E6H,1FH,47H,7DH,0E6H,1FH,17H,17H ; 216F ..G}....
-        DB      17H,6FH,7CH,0D6H,20H,0E6H,3FH,67H ; 2177 .o|. .?g
-        DB      29H,29H,7DH,0B0H,6FH,0C9H ; 217F ))}.o.
+L216F:
+        AND     1FH                     ; 216F  e61f
+        LD      B,A                     ; 2171  47
+        LD      A,L                     ; 2172  7d
+        AND     1FH                     ; 2173  e61f
+        RLA                             ; 2175  17
+        RLA                             ; 2176  17
+        RLA                             ; 2177  17
+        LD      L,A                     ; 2178  6f
+        LD      A,H                     ; 2179  7c
+        SUB     20H                     ; 217A  d620
+        AND     3FH                     ; 217C  e63f
+        LD      H,A                     ; 217E  67
+        ADD     HL,HL                   ; 217F  29
+        ADD     HL,HL                   ; 2180  29
+        LD      A,L                     ; 2181  7d
+        OR      B                       ; 2182  b0
+        LD      L,A                     ; 2183  6f
+        RET                             ; 2184  c9
 L2185:
         LD      H,0                     ; 2185  2600
         LD      L,A                     ; 2187  6f
-        LD      DE,41AEH                ; 2188  11ae41
+        LD      DE,V_41AE               ; 2188  11ae41
 L218B:
         LD      A,6                     ; 218B  3e06
         PUSH    HL                      ; 218D  e5
@@ -4170,7 +4631,7 @@ L218B:
         LD      E,(HL)                  ; 219B  5e
         INC     HL                      ; 219C  23
         LD      D,(HL)                  ; 219D  56
-        LD      HL,4002H                ; 219E  210240
+        LD      HL,V_4002               ; 219E  210240
         LD      B,(HL)                  ; 21A1  46
         CP      8BH                     ; 21A2  fe8b
         JR      z,L21A8                 ; 21A4  2802
@@ -4189,19 +4650,19 @@ L21A8:
         POP     HL                      ; 21B7  e1
         JR      L218B                   ; 21B8  18d1
 L21BA:
-        LD      (4003H),HL              ; 21BA  220340
+        LD      (V_4003),HL             ; 21BA  220340
         PUSH    BC                      ; 21BD  c5
         POP     HL                      ; 21BE  e1
-        LD      (4005H),HL              ; 21BF  220540
+        LD      (V_4005),HL             ; 21BF  220540
         RET                             ; 21C2  c9
 L21C3:
-        LD      HL,(419AH)              ; 21C3  2a9a41
+        LD      HL,(V_419A)             ; 21C3  2a9a41
         EX      (SP),HL                 ; 21C6  e3
         PUSH    HL                      ; 21C7  e5
         LD      A,8BH                   ; 21C8  3e8b
         CP      L                       ; 21CA  bd
-        LD      HL,4003H                ; 21CB  210340
-        LD      A,(4002H)               ; 21CE  3a0240
+        LD      HL,V_4003               ; 21CB  210340
+        LD      A,(V_4002)              ; 21CE  3a0240
         LD      C,A                     ; 21D1  4f
         LD      B,0                     ; 21D2  0600
         JR      nz,L21E0                ; 21D4  200a
@@ -4218,34 +4679,34 @@ L21E0:
         CALL    L20A1                   ; 21E0  cda120
 L21E3:
         POP     HL                      ; 21E3  e1
-        LD      (4003H),HL              ; 21E4  220340
-        LD      (4005H),DE              ; 21E7  ed530540
-        LD      HL,4003H                ; 21EB  210340
+        LD      (V_4003),HL             ; 21E4  220340
+        LD      (V_4005),DE             ; 21E7  ed530540
+        LD      HL,V_4003               ; 21EB  210340
         LD      BC,4                    ; 21EE  010400
         POP     DE                      ; 21F1  d1
         CALL    L2081                   ; 21F2  cd8120
-        LD      (4005H),HL              ; 21F5  220540
+        LD      (V_4005),HL             ; 21F5  220540
         RET                             ; 21F8  c9
 L21F9:
-        LD      DE,41A8H                ; 21F9  11a841
+        LD      DE,V_41A8               ; 21F9  11a841
         JR      L2201                   ; 21FC  1803
 L21FE:
-        LD      DE,41A6H                ; 21FE  11a641
+        LD      DE,V_41A6               ; 21FE  11a641
 L2201:
-        LD      (41CDH),HL              ; 2201  22cd41
-        LD      HL,(418CH)              ; 2204  2a8c41
-        LD      (41CBH),HL              ; 2207  22cb41
+        LD      (V_41CD),HL             ; 2201  22cd41
+        LD      HL,(V_418C)             ; 2204  2a8c41
+        LD      (V_41CB),HL             ; 2207  22cb41
 L220A:
         LD      HL,0FFFFH               ; 220A  21ffff
-        LD      (41CFH),HL              ; 220D  22cf41
-        LD      HL,41C1H                ; 2210  21c141
+        LD      (V_41CF),HL             ; 220D  22cf41
+        LD      HL,V_41C1               ; 2210  21c141
         SET     7,(HL)                  ; 2213  cbfe
-        LD      HL,41CBH                ; 2215  21cb41
+        LD      HL,V_41CB               ; 2215  21cb41
         LD      BC,6                    ; 2218  010600
         JP      L2085                   ; 221B  c38520
 L221E:
-        LD      DE,41AAH                ; 221E  11aa41
-        LD      (41CBH),HL              ; 2221  22cb41
+        LD      DE,V_41AA               ; 221E  11aa41
+        LD      (V_41CB),HL             ; 2221  22cb41
         LD      A,6                     ; 2224  3e06
         CALL    LINE_FIND               ; 2226  cd3533
         BIT     1,A                     ; 2229  cb4f
@@ -4256,45 +4717,47 @@ L221E:
         LD      E,(HL)                  ; 2232  5e
         INC     HL                      ; 2233  23
         LD      D,(HL)                  ; 2234  56
-        LD      HL,(418CH)              ; 2235  2a8c41
+        LD      HL,(V_418C)             ; 2235  2a8c41
         AND     A                       ; 2238  a7
         SBC     HL,DE                   ; 2239  ed52
         LD      A,12                    ; 223B  3e0c
         JP      nz,ERROR                ; 223D  c25933
         POP     DE                      ; 2240  d1
 L2241:
-        LD      DE,(419AH)              ; 2241  ed5b9a41
-        LD      HL,(418CH)              ; 2245  2a8c41
-        LD      (41CDH),HL              ; 2248  22cd41
+        LD      DE,(V_419A)             ; 2241  ed5b9a41
+        LD      HL,(V_418C)             ; 2245  2a8c41
+        LD      (V_41CD),HL             ; 2248  22cd41
         JR      L220A                   ; 224B  18bd
 L224D:
-        LD      HL,(41BBH)              ; 224D  2abb41
+        LD      HL,(V_41BB)             ; 224D  2abb41
         LD      A,H                     ; 2250  7c
         OR      L                       ; 2251  b5
         RET     nz                      ; 2252  c0
-        LD      HL,(41B9H)              ; 2253  2ab941
+        LD      HL,(V_41B9)             ; 2253  2ab941
         LD      A,H                     ; 2256  7c
         OR      L                       ; 2257  b5
         JR      nz,L225B                ; 2258  2001
         DEC     HL                      ; 225A  2b
 L225B:
-        LD      (41BBH),HL              ; 225B  22bb41
+        LD      (V_41BB),HL             ; 225B  22bb41
         RET                             ; 225E  c9
 L225F:
-        LD      DE,41B0H                ; 225F  11b041
-        LD      HL,(41B9H)              ; 2262  2ab941
+        LD      DE,V_41B0               ; 225F  11b041
+        LD      HL,(V_41B9)             ; 2262  2ab941
         LD      A,6                     ; 2265  3e06
         JP      LINE_FIND               ; 2267  c33533
 L226A:
         LD      A,3                     ; 226A  3e03
-        LD      HL,(41BBH)              ; 226C  2abb41
+L226C:
+        LD      HL,(V_41BB)             ; 226C  2abb41
         JP      L3331                   ; 226F  c33133
 L2272:
-        LD      DE,41B0H                ; 2272  11b041
+        LD      DE,V_41B0               ; 2272  11b041
         LD      A,6                     ; 2275  3e06
         CALL    LINE_FIND               ; 2277  cd3533
         BIT     1,A                     ; 227A  cb4f
         JR      z,L229C                 ; 227C  281e
+L227E:
         LD      HL,4                    ; 227E  210400
         ADD     HL,BC                   ; 2281  09
         LD      E,(HL)                  ; 2282  5e
@@ -4317,25 +4780,25 @@ L2272:
         LD      C,8                     ; 2297  0e08
         CALL    L204B                   ; 2299  cd4b20
 L229C:
-        LD      HL,(419AH)              ; 229C  2a9a41
+        LD      HL,(V_419A)             ; 229C  2a9a41
         PUSH    HL                      ; 229F  e5
-        LD      DE,41A6H                ; 22A0  11a641
+        LD      DE,V_41A6               ; 22A0  11a641
         LD      A,1                     ; 22A3  3e01
 L22A5:
         PUSH    AF                      ; 22A5  f5
 L22A6:
-        LD      HL,(418CH)              ; 22A6  2a8c41
+        LD      HL,(V_418C)             ; 22A6  2a8c41
         LD      A,2                     ; 22A9  3e02
         CALL    LINE_FIND               ; 22AB  cd3533
         JR      z,L22B5                 ; 22AE  2805
         CALL    L22FD                   ; 22B0  cdfd22
         JR      L22A6                   ; 22B3  18f1
 L22B5:
-        LD      DE,41A8H                ; 22B5  11a841
+        LD      DE,V_41A8               ; 22B5  11a841
         POP     AF                      ; 22B8  f1
         DEC     A                       ; 22B9  3d
         JR      z,L22A5                 ; 22BA  28e9
-        LD      HL,41AAH                ; 22BC  21aa41
+        LD      HL,V_41AA               ; 22BC  21aa41
         CALL    LINE_SET                ; 22BF  cd2633
         JR      z,L22DD                 ; 22C2  2819
 L22C4:
@@ -4349,7 +4812,7 @@ L22C4:
         INC     HL                      ; 22CB  23
         LD      D,(HL)                  ; 22CC  56
         AND     A                       ; 22CD  a7
-        LD      HL,(418CH)              ; 22CE  2a8c41
+        LD      HL,(V_418C)             ; 22CE  2a8c41
         SBC     HL,DE                   ; 22D1  ed52
         JR      nz,L22D8                ; 22D3  2003
         CALL    L22FD                   ; 22D5  cdfd22
@@ -4357,8 +4820,8 @@ L22D8:
         CALL    LINE_NEXT               ; 22D8  cd1f33
         JR      nz,L22C4                ; 22DB  20e7
 L22DD:
-        LD      DE,41B2H                ; 22DD  11b241
-        LD      HL,(418CH)              ; 22E0  2a8c41
+        LD      DE,V_41B2               ; 22DD  11b241
+        LD      HL,(V_418C)             ; 22E0  2a8c41
         LD      A,2                     ; 22E3  3e02
         CALL    LINE_FIND               ; 22E5  cd3533
         JR      z,L22F8                 ; 22E8  280e
@@ -4375,7 +4838,7 @@ L22DD:
         CALL    L204B                   ; 22F5  cd4b20
 L22F8:
         POP     HL                      ; 22F8  e1
-        LD      (419AH),HL              ; 22F9  229a41
+        LD      (V_419A),HL             ; 22F9  229a41
         RET                             ; 22FC  c9
 L22FD:
         LD      HL,6                    ; 22FD  210600
@@ -4399,47 +4862,47 @@ L230E:
 L2316:
         LD      A,IXL                   ; 2316  dd7d
         SUB     12                      ; 2318  d60c
-        LD      (410BH),A               ; 231A  320b41
-        LD      HL,(418CH)              ; 231D  2a8c41
+        LD      (V_410B),A              ; 231A  320b41
+        LD      HL,(V_418C)             ; 231D  2a8c41
         LD      A,H                     ; 2320  7c
         OR      L                       ; 2321  b5
         RET     z                       ; 2322  c8
         CALL    L2272                   ; 2323  cd7222
         CALL    L2374                   ; 2326  cd7423
         LD      DE,0                    ; 2329  110000
-        LD      A,(41B4H)               ; 232C  3ab441
+        LD      A,(V_41B4)              ; 232C  3ab441
         AND     A                       ; 232F  a7
         CALL    nz,L209A                ; 2330  c49a20
-        LD      (418EH),DE              ; 2333  ed538e41
+        LD      (V_418E),DE             ; 2333  ed538e41
         LD      DE,0                    ; 2337  110000
-        LD      HL,410BH                ; 233A  210b41
+        LD      HL,V_410B               ; 233A  210b41
         LD      A,(HL)                  ; 233D  7e
         AND     A                       ; 233E  a7
         CALL    nz,L209D                ; 233F  c49d20
-        LD      (4190H),DE              ; 2342  ed539041
+        LD      (V_4190),DE             ; 2342  ed539041
         LD      BC,6                    ; 2346  010600
-        LD      HL,418CH                ; 2349  218c41
+        LD      HL,V_418C               ; 2349  218c41
         CALL    L2081                   ; 234C  cd8120
-        LD      HL,41C1H                ; 234F  21c141
+        LD      HL,V_41C1               ; 234F  21c141
         BIT     3,(HL)                  ; 2352  cb5e
         RET     z                       ; 2354  c8
         RES     3,(HL)                  ; 2355  cb9e
-        LD      HL,(418CH)              ; 2357  2a8c41
-        LD      (410BH),HL              ; 235A  220b41
-        LD      DE,41B2H                ; 235D  11b241
+        LD      HL,(V_418C)             ; 2357  2a8c41
+        LD      (V_410B),HL             ; 235A  220b41
+        LD      DE,V_41B2               ; 235D  11b241
         LD      A,4                     ; 2360  3e04
         CALL    LINE_FIND               ; 2362  cd3533
-        LD      HL,410BH                ; 2365  210b41
-        LD      A,(410DH)               ; 2368  3a0d41
+        LD      HL,V_410B               ; 2365  210b41
+        LD      A,(V_410D)              ; 2368  3a0d41
         ADD     A,A                     ; 236B  87
         ADD     A,3                     ; 236C  c603
         LD      B,0                     ; 236E  0600
         LD      C,A                     ; 2370  4f
         JP      L2081                   ; 2371  c38120
 L2374:
-        LD      DE,(4084H)              ; 2374  ed5b8440
+        LD      DE,(V_4084)             ; 2374  ed5b8440
         DEC     DE                      ; 2378  1b
-        LD      HL,4003H                ; 2379  210340
+        LD      HL,V_4003               ; 2379  210340
         LD      BC,0C0FFH               ; 237C  01ffc0
 L237F:
         INC     DE                      ; 237F  13
@@ -4464,7 +4927,7 @@ L2391:
         CP      1EH                     ; 2395  fe1e
         JR      nz,L237F                ; 2397  20e6
         LD      A,C                     ; 2399  79
-        LD      (4002H),A               ; 239A  320240
+        LD      (V_4002),A              ; 239A  320240
         RET                             ; 239D  c9
 L239E:
         LD      C,(HL)                  ; 239E  4e
@@ -4498,12 +4961,12 @@ EMIT_BYTE:
         INC     IX                      ; 23BF  dd23
         PUSH    AF                      ; 23C1  f5
         CP      1EH                     ; 23C2  fe1e
-        LD      A,(41C1H)               ; 23C4  3ac141
+        LD      A,(V_41C1)              ; 23C4  3ac141
         RES     6,A                     ; 23C7  cbb7
         JR      nz,L23CD                ; 23C9  2002
         SET     6,A                     ; 23CB  cbf7
 L23CD:
-        LD      (41C1H),A               ; 23CD  32c141
+        LD      (V_41C1),A              ; 23CD  32c141
         LD      A,IXL                   ; 23D0  dd7d
         SUB     12                      ; 23D2  d60c
         CP      7BH                     ; 23D4  fe7b
@@ -4524,7 +4987,9 @@ L23EB:
 L23EE:
         CALL    L2430                   ; 23EE  cd3024
         JR      L23E0                   ; 23F1  18ed
-        DB      3EH,1EH,0CDH,0EBH,23H,0C3H,30H,25H ; 23F3 >...#.0%
+        LD      A,1EH                   ; 23F3  3e1e
+        CALL    L23EB                   ; 23F5  cdeb23
+        JP      L2530                   ; 23F8  c33025
 L23FB:
         LD      B,A                     ; 23FB  47
         RLCA                            ; 23FC  07
@@ -4539,10 +5004,10 @@ L23FB:
 L2407:
         LD      HL,0FFFFH               ; 2407  21ffff
 L240A:
-        LD      DE,(4192H)              ; 240A  ed5b9241
-        LD      (4192H),HL              ; 240E  229241
-        LD      HL,(4194H)              ; 2411  2a9441
-        LD      (4194H),DE              ; 2414  ed539441
+        LD      DE,(V_4192)             ; 240A  ed5b9241
+        LD      (V_4192),HL             ; 240E  229241
+        LD      HL,(V_4194)             ; 2411  2a9441
+        LD      (V_4194),DE             ; 2414  ed539441
         LD      A,H                     ; 2418  7c
         OR      L                       ; 2419  b5
         RET     z                       ; 241A  c8
@@ -4550,33 +5015,33 @@ L240A:
         AND     L                       ; 241C  a5
         INC     A                       ; 241D  3c
         CALL    z,L2459                 ; 241E  cc5924
-        LD      (41CBH),HL              ; 2421  22cb41
-        LD      HL,41CBH                ; 2424  21cb41
-        LD      DE,419EH                ; 2427  119e41
+        LD      (V_41CB),HL             ; 2421  22cb41
+        LD      HL,V_41CB               ; 2424  21cb41
+        LD      DE,V_419E               ; 2427  119e41
         LD      BC,2                    ; 242A  010200
         JP      L2085                   ; 242D  c38520
 L2430:
         PUSH    AF                      ; 2430  f5
-        LD      DE,419EH                ; 2431  119e41
+        LD      DE,V_419E               ; 2431  119e41
         CALL    L330C                   ; 2434  cd0c33
         JR      c,L2440                 ; 2437  3807
         LD      BC,4                    ; 2439  010400
         CALL    L2057                   ; 243C  cd5720
         EX      DE,HL                   ; 243F  eb
 L2440:
-        LD      DE,(4194H)              ; 2440  ed5b9441
-        LD      (4194H),HL              ; 2444  229441
-        LD      HL,(4192H)              ; 2447  2a9241
-        LD      (4192H),DE              ; 244A  ed539241
+        LD      DE,(V_4194)             ; 2440  ed5b9441
+        LD      (V_4194),HL             ; 2444  229441
+        LD      HL,(V_4192)             ; 2447  2a9241
+        LD      (V_4192),DE             ; 244A  ed539241
         POP     AF                      ; 244E  f1
         RET                             ; 244F  c9
 L2450:
-        LD      DE,(4192H)              ; 2450  ed5b9241
-        LD      (4192H),HL              ; 2454  229241
+        LD      DE,(V_4192)             ; 2450  ed5b9241
+        LD      (V_4192),HL             ; 2454  229241
         EX      DE,HL                   ; 2457  eb
         RET                             ; 2458  c9
 L2459:
-        LD      HL,41C1H                ; 2459  21c141
+        LD      HL,V_41C1               ; 2459  21c141
         BIT     6,(HL)                  ; 245C  cb76
         RES     6,(HL)                  ; 245E  cbb6
         JR      z,L2485                 ; 2460  2823
@@ -4606,42 +5071,42 @@ L2485:
         LD      A,20H                   ; 2488  3e20
         JP      L23DD                   ; 248A  c3dd23
 L248D:
-        LD      HL,(4192H)              ; 248D  2a9241
+        LD      HL,(V_4192)             ; 248D  2a9241
         LD      A,H                     ; 2490  7c
         AND     L                       ; 2491  a5
         INC     A                       ; 2492  3c
         CALL    z,L2459                 ; 2493  cc5924
-        LD      (4192H),HL              ; 2496  229241
-        LD      HL,(4194H)              ; 2499  2a9441
+        LD      (V_4192),HL             ; 2496  229241
+        LD      HL,(V_4194)             ; 2499  2a9441
         LD      A,H                     ; 249C  7c
         AND     L                       ; 249D  a5
         INC     A                       ; 249E  3c
         CALL    z,L2459                 ; 249F  cc5924
-        LD      (4194H),HL              ; 24A2  229441
+        LD      (V_4194),HL             ; 24A2  229441
         RET                             ; 24A5  c9
 L24A6:
-        LD      DE,41A2H                ; 24A6  11a241
+        LD      DE,V_41A2               ; 24A6  11a241
         LD      BC,2                    ; 24A9  010200
-        LD      HL,4196H                ; 24AC  219641
+        LD      HL,V_4196               ; 24AC  219641
         CALL    L2085                   ; 24AF  cd8520
-        LD      HL,(4198H)              ; 24B2  2a9841
-        LD      (4196H),HL              ; 24B5  229641
+        LD      HL,(V_4198)             ; 24B2  2a9841
+        LD      (V_4196),HL             ; 24B5  229641
         RET                             ; 24B8  c9
 L24B9:
-        LD      DE,41A2H                ; 24B9  11a241
+        LD      DE,V_41A2               ; 24B9  11a241
         CALL    L330C                   ; 24BC  cd0c33
         JR      c,L24C8                 ; 24BF  3807
         LD      BC,4                    ; 24C1  010400
         CALL    L2057                   ; 24C4  cd5720
         EX      DE,HL                   ; 24C7  eb
 L24C8:
-        LD      (4196H),HL              ; 24C8  229641
+        LD      (V_4196),HL             ; 24C8  229641
         RET                             ; 24CB  c9
 L24CC:
-        LD      A,(4197H)               ; 24CC  3a9741
+        LD      A,(V_4197)              ; 24CC  3a9741
         CP      5                       ; 24CF  fe05
         JR      c,L24EF                 ; 24D1  381c
-        LD      HL,(4192H)              ; 24D3  2a9241
+        LD      HL,(V_4192)             ; 24D3  2a9241
         LD      A,H                     ; 24D6  7c
         AND     L                       ; 24D7  a5
         INC     A                       ; 24D8  3c
@@ -4652,40 +5117,40 @@ L24CC:
         LD      A,1EH                   ; 24E4  3e1e
         CALL    L23DD                   ; 24E6  cddd23
 L24E9:
-        LD      A,(4196H)               ; 24E9  3a9641
+        LD      A,(V_4196)              ; 24E9  3a9641
         JP      EMIT_BYTE               ; 24EC  c3bc23
 L24EF:
-        LD      HL,(4194H)              ; 24EF  2a9441
+        LD      HL,(V_4194)             ; 24EF  2a9441
         LD      A,H                     ; 24F2  7c
         AND     L                       ; 24F3  a5
         INC     A                       ; 24F4  3c
         JR      z,L2524                 ; 24F5  282d
-        LD      HL,(4192H)              ; 24F7  2a9241
+        LD      HL,(V_4192)             ; 24F7  2a9241
         LD      A,H                     ; 24FA  7c
         AND     L                       ; 24FB  a5
         INC     A                       ; 24FC  3c
         JR      nz,L2513                ; 24FD  2014
-        LD      HL,(4194H)              ; 24FF  2a9441
-        LD      (4192H),HL              ; 2502  229241
-        LD      A,(4196H)               ; 2505  3a9641
+        LD      HL,(V_4194)             ; 24FF  2a9441
+        LD      (V_4192),HL             ; 2502  229241
+        LD      A,(V_4196)              ; 2505  3a9641
         CP      9                       ; 2508  fe09
         JR      nc,L251E                ; 250A  3012
         INC     A                       ; 250C  3c
         INC     A                       ; 250D  3c
-        LD      (4196H),A               ; 250E  329641
+        LD      (V_4196),A              ; 250E  329641
         JR      L251E                   ; 2511  180b
 L2513:
-        LD      HL,(4194H)              ; 2513  2a9441
+        LD      HL,(V_4194)             ; 2513  2a9441
         CALL    L2530                   ; 2516  cd3025
         LD      A,1EH                   ; 2519  3e1e
         CALL    L23DD                   ; 251B  cddd23
 L251E:
         LD      HL,0FFFFH               ; 251E  21ffff
-        LD      (4194H),HL              ; 2521  229441
+        LD      (V_4194),HL             ; 2521  229441
 L2524:
         CALL    L2430                   ; 2524  cd3024
         CALL    L2530                   ; 2527  cd3025
-        LD      A,(4196H)               ; 252A  3a9641
+        LD      A,(V_4196)              ; 252A  3a9641
         JP      L23DD                   ; 252D  c3dd23
 L2530:
         INC     HL                      ; 2530  23
@@ -4717,18 +5182,18 @@ L254E:
         SUB     13                      ; 2550  d60d
         RET                             ; 2552  c9
 L2553:
-        LD      DE,41CBH                ; 2553  11cb41
+        LD      DE,V_41CB               ; 2553  11cb41
         CALL    UINT8_TO_DECIMAL        ; 2556  cdee2d
         LD      B,2                     ; 2559  0602
         JR      L2565                   ; 255B  1808
 L255D:
-        LD      DE,41CBH                ; 255D  11cb41
+        LD      DE,V_41CB               ; 255D  11cb41
         CALL    UINT16_TO_DECIMAL       ; 2560  cdf32d
         LD      B,4                     ; 2563  0604
 L2565:
         LD      C,B                     ; 2565  48
         INC     C                       ; 2566  0c
-        LD      HL,41CAH                ; 2567  21ca41
+        LD      HL,V_41CA               ; 2567  21ca41
         LD      A,30H                   ; 256A  3e30
 L256C:
         INC     HL                      ; 256C  23
@@ -4737,40 +5202,40 @@ L256C:
         LD      (HL),20H                ; 2570  3620
         DJNZ    L256C                   ; 2572  10f8
 L2574:
-        LD      HL,41CBH                ; 2574  21cb41
+        LD      HL,V_41CB               ; 2574  21cb41
         LD      B,C                     ; 2577  41
         CALL    L3620                   ; 2578  cd2036
         JP      L3619                   ; 257B  c31936
 L257E:
-        LD      HL,41C1H                ; 257E  21c141
+        LD      HL,V_41C1               ; 257E  21c141
         BIT     1,(HL)                  ; 2581  cb4e
         RET     z                       ; 2583  c8
-        LD      HL,347FH                ; 2584  217f34
+        LD      HL,D347F                ; 2584  217f34
         CALL    PRINT_STR               ; 2587  cde735
-        LD      HL,(41DAH)              ; 258A  2ada41
+        LD      HL,(V_41DA)             ; 258A  2ada41
         INC     HL                      ; 258D  23
         INC     HL                      ; 258E  23
         LD      E,(HL)                  ; 258F  5e
         INC     HL                      ; 2590  23
         LD      D,(HL)                  ; 2591  56
         EX      DE,HL                   ; 2592  eb
-        LD      (41B9H),HL              ; 2593  22b941
+        LD      (V_41B9),HL             ; 2593  22b941
         CALL    L255D                   ; 2596  cd5d25
         JP      CH_CRLF                 ; 2599  c3ce35
 L259C:
-        LD      HL,41C1H                ; 259C  21c141
+        LD      HL,V_41C1               ; 259C  21c141
         BIT     1,(HL)                  ; 259F  cb4e
         RET     z                       ; 25A1  c8
-        LD      HL,(41B9H)              ; 25A2  2ab941
+        LD      HL,(V_41B9)             ; 25A2  2ab941
         LD      A,H                     ; 25A5  7c
         OR      L                       ; 25A6  b5
         RET     z                       ; 25A7  c8
-        LD      DE,(41BBH)              ; 25A8  ed5bbb41
+        LD      DE,(V_41BB)             ; 25A8  ed5bbb41
         PUSH    DE                      ; 25AC  d5
-        LD      (41BBH),HL              ; 25AD  22bb41
+        LD      (V_41BB),HL             ; 25AD  22bb41
         CALL    L1346                   ; 25B0  cd4613
         POP     HL                      ; 25B3  e1
-        LD      (41BBH),HL              ; 25B4  22bb41
+        LD      (V_41BB),HL             ; 25B4  22bb41
         RET                             ; 25B7  c9
 ; ---- Aktionsbyte: Sprung nach (HL)+(HL), relativ vorwaerts
 SYN_ACTION:
@@ -4783,10 +5248,14 @@ SYN_ACTION:
         INC     H                       ; 25BF  24
 L25C0:
         PUSH    HL                      ; 25C0  e5
-        LD      HL,25C6H                ; 25C1  21c625
+        LD      HL,L25C6                ; 25C1  21c625
         EX      (SP),HL                 ; 25C4  e3
         JP      (HL)                    ; 25C5  e9
-        DB      0E1H,0C1H,23H,0C9H      ; 25C6 ..#.
+L25C6:
+        POP     HL                      ; 25C6  e1
+        POP     BC                      ; 25C7  c1
+        INC     HL                      ; 25C8  23
+        RET                             ; 25C9  c9
 L25CA:
         AND     A                       ; 25CA  a7
         PUSH    HL                      ; 25CB  e5
@@ -4823,7 +5292,7 @@ L25F9:
 L25FC:
         LD      (FAC),HL                ; 25FC  22e242
         RET     po                      ; 25FF  e0
-        LD      (42E4H),DE              ; 2600  ed53e442
+        LD      (V_42E4),DE             ; 2600  ed53e442
         JP      INT32_TO_FP             ; 2604  c38132
 L2607:
         JP      nz,FP_MUL_ARG           ; 2607  c28d27
@@ -4884,7 +5353,7 @@ L264B:
         SBC     HL,BC                   ; 265B  ed42
 L265D:
         LD      (FAC),DE                ; 265D  ed53e242
-        LD      (42E4H),HL              ; 2661  22e442
+        LD      (V_42E4),HL             ; 2661  22e442
         BIT     7,D                     ; 2664  cb7a
         JR      z,L2669                 ; 2666  2801
         INC     HL                      ; 2668  23
@@ -4913,8 +5382,14 @@ L2683:
         LD      C,L                     ; 268F  4d
         LD      HL,0                    ; 2690  210000
         RET                             ; 2693  c9
-        DB      3AH,0E6H,42H,0A7H,0CBH,7FH,0C0H,0FEH ; 2694 :.B.....
-        DB      10H,3FH,0C9H            ; 269C .?.
+L2694:
+        LD      A,(FAC_EXP)             ; 2694  3ae642
+        AND     A                       ; 2697  a7
+        BIT     7,A                     ; 2698  cb7f
+        RET     nz                      ; 269A  c0
+        CP      10H                     ; 269B  fe10
+        CCF                             ; 269D  3f
+        RET                             ; 269E  c9
 
 ;=====================================================================
 ; GLEITKOMMA: FORMAT UND SCHNITTSTELLEN
@@ -5048,7 +5523,7 @@ L2724:
 ; ---- Vorzeichen gleich: Betraege addieren; sonst subtrahieren und ggf. Vorzeichen wechseln.
 FP_ADD_MANTISSAS:
         LD      A,(ARG_SIGN_MSB)        ; 2731  3aea42
-        LD      DE,(42E4H)              ; 2734  ed5be442
+        LD      DE,(V_42E4)             ; 2734  ed5be442
         LD      HL,(FAC)                ; 2738  2ae242
         LD      BC,(ARG)                ; 273B  ed4be742
         XOR     D                       ; 273F  aa
@@ -5057,7 +5532,7 @@ FP_ADD_MANTISSAS:
         JP      m,FP_SUB_MANTISSAS      ; 2743  fa6e27
         ADD     HL,BC                   ; 2746  09
         EX      DE,HL                   ; 2747  eb
-        LD      BC,(42E9H)              ; 2748  ed4be942
+        LD      BC,(V_42E9)             ; 2748  ed4be942
         RES     7,B                     ; 274C  cbb8
         ADC     HL,BC                   ; 274E  ed4a
         JP      p,FP_STORE_RESULT       ; 2750  f27c27
@@ -5078,7 +5553,7 @@ FP_ADD_MANTISSAS:
 FP_SUB_MANTISSAS:
         SBC     HL,BC                   ; 276E  ed42
         EX      DE,HL                   ; 2770  eb
-        LD      BC,(42E9H)              ; 2771  ed4be942
+        LD      BC,(V_42E9)             ; 2771  ed4be942
         RES     7,B                     ; 2775  cbb8
         SBC     HL,BC                   ; 2777  ed42
         CALL    m,FP_NEGATE_MAGNITUDE   ; 2779  fc9428
@@ -5087,7 +5562,7 @@ FP_STORE_RESULT:
         AND     80H                     ; 277C  e680
         ADD     A,H                     ; 277E  84
         LD      H,A                     ; 277F  67
-        LD      (42E4H),HL              ; 2780  22e442
+        LD      (V_42E4),HL             ; 2780  22e442
         LD      (FAC),DE                ; 2783  ed53e242
         JP      FP_NORMALIZE            ; 2787  c35e28
 
@@ -5136,7 +5611,7 @@ FP_MUL_BIT:
         LD      HL,(FAC)                ; 27C3  2ae242
         ADD     HL,DE                   ; 27C6  19
         EX      DE,HL                   ; 27C7  eb
-        LD      HL,(42E4H)              ; 27C8  2ae442
+        LD      HL,(V_42E4)             ; 27C8  2ae442
         ADC     HL,BC                   ; 27CB  ed4a
         LD      B,H                     ; 27CD  44
         LD      C,L                     ; 27CE  4d
@@ -5174,7 +5649,7 @@ FP_DIV_ARG:
         LD      HL,ARG_SIGN_MSB         ; 27EF  21ea42
         LD      A,(HL)                  ; 27F2  7e
         RES     7,(HL)                  ; 27F3  cbbe
-        LD      DE,(42E4H)              ; 27F5  ed5be442
+        LD      DE,(V_42E4)             ; 27F5  ed5be442
         XOR     D                       ; 27F9  aa
         LD      B,A                     ; 27FA  47
         BIT     6,D                     ; 27FB  cb72
@@ -5198,7 +5673,7 @@ FP_DIV_SUBTRACT:
         LD      BC,(ARG)                ; 281C  ed4be742
         SBC     HL,BC                   ; 2820  ed42
         EX      DE,HL                   ; 2822  eb
-        LD      BC,(42E9H)              ; 2823  ed4be942
+        LD      BC,(V_42E9)             ; 2823  ed4be942
         SBC     HL,BC                   ; 2827  ed42
         CCF                             ; 2829  3f
 FP_DIV_QUOTIENT_BIT:
@@ -5224,7 +5699,7 @@ FP_DIV_QUOTIENT_BIT:
         LD      BC,(ARG)                ; 2847  ed4be742
         ADD     HL,BC                   ; 284B  09
         EX      DE,HL                   ; 284C  eb
-        LD      BC,(42E9H)              ; 284D  ed4be942
+        LD      BC,(V_42E9)             ; 284D  ed4be942
         ADC     HL,BC                   ; 2851  ed4a
         JR      FP_DIV_QUOTIENT_BIT     ; 2853  18d5
 L2855:
@@ -5242,7 +5717,7 @@ L2855:
 ; Signed Exponentenunterlauf -> Fehler 33, NICHT still auf null setzen.
 ;=====================================================================
 FP_NORMALIZE:
-        LD      BC,(42E4H)              ; 285E  ed4be442
+        LD      BC,(V_42E4)             ; 285E  ed4be442
         BIT     6,B                     ; 2862  cb70
         RET     nz                      ; 2864  c0
         XOR     A                       ; 2865  af
@@ -5293,8 +5768,12 @@ FP_NEGATE_MAGNITUDE:
         LD      H,A                     ; 28A3  67
         LD      A,B                     ; 28A4  78
         RET                             ; 28A5  c9
-        DB      3EH,7FH,18H,02H,3EH,0FFH,21H,0E6H ; 28A6 >...>.!.
-        DB      42H,36H,7FH             ; 28AE B6.
+        LD      A,7FH                   ; 28A6  3e7f
+        JR      L28AC                   ; 28A8  1802
+        LD      A,0FFH                  ; 28AA  3eff
+L28AC:
+        LD      HL,FAC_EXP              ; 28AC  21e642
+        LD      (HL),7FH                ; 28AF  367f
 L28B1:
         DEC     L                       ; 28B1  2d
         LD      (HL),A                  ; 28B2  77
@@ -5334,18 +5813,18 @@ FP_SQUARE:
 X_SQR:
         CALL    FAC_REQUIRE_FP          ; 28D5  cd921f
         LD      HL,(FAC)                ; 28D8  2ae242
-        LD      (42ECH),HL              ; 28DB  22ec42
+        LD      (V_42EC),HL             ; 28DB  22ec42
         LD      A,H                     ; 28DE  7c
         OR      L                       ; 28DF  b5
-        LD      HL,(42E4H)              ; 28E0  2ae442
+        LD      HL,(V_42E4)             ; 28E0  2ae442
         OR      H                       ; 28E3  b4
         OR      L                       ; 28E4  b5
         RET     z                       ; 28E5  c8
         BIT     7,H                     ; 28E6  cb7c
         JP      nz,FP_FUNCTION_ERROR    ; 28E8  c2c62c
-        LD      (42EEH),HL              ; 28EB  22ee42
+        LD      (V_42EE),HL             ; 28EB  22ee42
         LD      A,(FAC_EXP)             ; 28EE  3ae642
-        LD      (42F0H),A               ; 28F1  32f042
+        LD      (V_42F0),A              ; 28F1  32f042
         LD      L,6DH                   ; 28F4  2e6d
         SRA     A                       ; 28F6  cb2f
         JR      nc,L28FD                ; 28F8  3003
@@ -5361,26 +5840,28 @@ L28FD:
 FP_SQRT_NEWTON:
         LD      BC,5                    ; 290A  010500
         LD      HL,FAC                  ; 290D  21e242
-        LD      DE,42F1H                ; 2910  11f142
+        LD      DE,V_42F1               ; 2910  11f142
         LDIR                            ; 2913  edb0
         LD      BC,5                    ; 2915  010500
-        LD      HL,42ECH                ; 2918  21ec42
+        LD      HL,V_42EC               ; 2918  21ec42
         LD      DE,FAC                  ; 291B  11e242
         LDIR                            ; 291E  edb0
         LD      BC,5                    ; 2920  010500
-        LD      HL,42F1H                ; 2923  21f142
+        LD      HL,V_42F1               ; 2923  21f142
         LD      DE,ARG                  ; 2926  11e742
         LDIR                            ; 2929  edb0
         CALL    FP_DIV_ARG              ; 292B  cdef27
         LD      BC,5                    ; 292E  010500
-        LD      HL,42F1H                ; 2931  21f142
+        LD      HL,V_42F1               ; 2931  21f142
         LD      DE,ARG                  ; 2934  11e742
         LDIR                            ; 2937  edb0
         CALL    FP_ADD_ARG              ; 2939  cdc326
         LD      HL,FAC_EXP              ; 293C  21e642
         DEC     (HL)                    ; 293F  35
         RET                             ; 2940  c9
-        DB      21H,0E5H,42H,0CBH,0BEH,0C9H ; 2941 !.B...
+        LD      HL,FAC_SIGN_MSB         ; 2941  21e542
+        RES     7,(HL)                  ; 2944  cbbe
+        RET                             ; 2946  c9
 ; ---- FP_NEG: Vorzeichen von FAC umkehren (falls ungleich 0)
 FP_NEG:
         LD      HL,FAC_SIGN_MSB         ; 2947  21e542
@@ -5444,9 +5925,13 @@ L2997:
         AND     (HL)                    ; 299A  a6
         LD      (HL),A                  ; 299B  77
         RET                             ; 299C  c9
-        DB      11H,0E7H,42H,21H,0E2H,42H,01H,05H ; 299D ..B!.B..
-        DB      00H,0EDH,0B0H,0CDH,57H,29H,0CDH,47H ; 29A5 ....W).G
-        DB      29H,0C3H,0C3H,26H       ; 29AD )..&
+        LD      DE,ARG                  ; 299D  11e742
+        LD      HL,FAC                  ; 29A0  21e242
+        LD      BC,5                    ; 29A3  010500
+        LDIR                            ; 29A6  edb0
+        CALL    FP_FLOOR                ; 29A8  cd5729
+        CALL    FP_NEG                  ; 29AB  cd4729
+        JP      FP_ADD_ARG              ; 29AE  c3c326
 ; ---- FAC <- 1-FAC; ARG wird mit dem bisherigen FAC belegt.
 FP_ONE_MINUS:
         LD      HL,FP_SUB_ARG           ; 29B1  21b626
@@ -5483,36 +5968,36 @@ X_LOG:
         PUSH    HL                      ; 29DE  e5
         XOR     A                       ; 29DF  af
         LD      (FAC_EXP),A             ; 29E0  32e642
-        LD      DE,42ECH                ; 29E3  11ec42
+        LD      DE,V_42EC               ; 29E3  11ec42
         CALL    FAC_STORE               ; 29E6  cdae26
         LD      DE,K_SQRT_HALF          ; 29E9  11632d
         CALL    FP_ADD                  ; 29EC  cdc026
-        LD      DE,42F1H                ; 29EF  11f142
+        LD      DE,V_42F1               ; 29EF  11f142
         CALL    FAC_STORE               ; 29F2  cdae26
-        LD      DE,42ECH                ; 29F5  11ec42
+        LD      DE,V_42EC               ; 29F5  11ec42
         CALL    FAC_LOAD                ; 29F8  cd9f26
         LD      DE,K_SQRT_HALF          ; 29FB  11632d
         CALL    FP_SUB                  ; 29FE  cdb326
-        LD      DE,42F1H                ; 2A01  11f142
+        LD      DE,V_42F1               ; 2A01  11f142
         CALL    FP_DIV                  ; 2A04  cdec27
-        LD      DE,42F1H                ; 2A07  11f142
+        LD      DE,V_42F1               ; 2A07  11f142
         CALL    FAC_STORE               ; 2A0A  cdae26
         CALL    FP_SQUARE               ; 2A0D  cdc728
-        LD      DE,42ECH                ; 2A10  11ec42
+        LD      DE,V_42EC               ; 2A10  11ec42
         CALL    FAC_STORE               ; 2A13  cdae26
         LD      DE,K_LOG_C5             ; 2A16  11d32c
         CALL    FP_MUL                  ; 2A19  cd8a27
         LD      DE,K_LOG_C3             ; 2A1C  116d2d
         CALL    FP_ADD                  ; 2A1F  cdc026
-        LD      DE,42ECH                ; 2A22  11ec42
+        LD      DE,V_42EC               ; 2A22  11ec42
         CALL    FP_MUL                  ; 2A25  cd8a27
         LD      DE,K_LOG_C1             ; 2A28  11682d
         CALL    FP_ADD                  ; 2A2B  cdc026
-        LD      DE,42F1H                ; 2A2E  11f142
+        LD      DE,V_42F1               ; 2A2E  11f142
         CALL    FP_MUL                  ; 2A31  cd8a27
         LD      DE,K_FP_HALF            ; 2A34  11132d
         CALL    FP_SUB                  ; 2A37  cdb326
-        LD      DE,42ECH                ; 2A3A  11ec42
+        LD      DE,V_42EC               ; 2A3A  11ec42
         CALL    FAC_STORE               ; 2A3D  cdae26
         POP     AF                      ; 2A40  f1
         LD      L,A                     ; 2A41  6f
@@ -5523,7 +6008,7 @@ X_LOG:
 L2A49:
         LD      (FAC),HL                ; 2A49  22e242
         CALL    INT16_TO_FP             ; 2A4C  cd7432
-        LD      DE,42ECH                ; 2A4F  11ec42
+        LD      DE,V_42EC               ; 2A4F  11ec42
         CALL    FP_ADD                  ; 2A52  cdc026
         LD      DE,K_LN_TWO             ; 2A55  113b2d
         JP      FP_MUL                  ; 2A58  c38a27
@@ -5558,37 +6043,37 @@ L2A71:
         LD      (HL),0FDH               ; 2A78  36fd
 L2A7A:
         PUSH    BC                      ; 2A7A  c5
-        LD      DE,42ECH                ; 2A7B  11ec42
+        LD      DE,V_42EC               ; 2A7B  11ec42
         CALL    FAC_STORE               ; 2A7E  cdae26
         LD      DE,K_FP_SIX             ; 2A81  11f52c
         CALL    FP_DIV                  ; 2A84  cdec27
         LD      DE,K_FP_ONE             ; 2A87  11dc2c
         CALL    FP_ADD                  ; 2A8A  cdc026
-        LD      DE,42ECH                ; 2A8D  11ec42
+        LD      DE,V_42EC               ; 2A8D  11ec42
         CALL    FP_MUL                  ; 2A90  cd8a27
         LD      DE,K_FP_FIVE            ; 2A93  11f02c
         CALL    FP_DIV                  ; 2A96  cdec27
         LD      DE,K_FP_ONE             ; 2A99  11dc2c
         CALL    FP_ADD                  ; 2A9C  cdc026
-        LD      DE,42ECH                ; 2A9F  11ec42
+        LD      DE,V_42EC               ; 2A9F  11ec42
         CALL    FP_MUL                  ; 2AA2  cd8a27
         LD      DE,K_FP_FOUR            ; 2AA5  11eb2c
         CALL    FP_DIV                  ; 2AA8  cdec27
         LD      DE,K_FP_ONE             ; 2AAB  11dc2c
         CALL    FP_ADD                  ; 2AAE  cdc026
-        LD      DE,42ECH                ; 2AB1  11ec42
+        LD      DE,V_42EC               ; 2AB1  11ec42
         CALL    FP_MUL                  ; 2AB4  cd8a27
         LD      DE,K_FP_THREE           ; 2AB7  11e62c
         CALL    FP_DIV                  ; 2ABA  cdec27
         LD      DE,K_FP_ONE             ; 2ABD  11dc2c
         CALL    FP_ADD                  ; 2AC0  cdc026
-        LD      DE,42ECH                ; 2AC3  11ec42
+        LD      DE,V_42EC               ; 2AC3  11ec42
         CALL    FP_MUL                  ; 2AC6  cd8a27
         LD      DE,K_FP_HALF            ; 2AC9  11132d
         CALL    FP_MUL                  ; 2ACC  cd8a27
         LD      DE,K_FP_ONE             ; 2ACF  11dc2c
         CALL    FP_ADD                  ; 2AD2  cdc026
-        LD      DE,42ECH                ; 2AD5  11ec42
+        LD      DE,V_42EC               ; 2AD5  11ec42
         CALL    FP_MUL                  ; 2AD8  cd8a27
         LD      DE,K_FP_ONE             ; 2ADB  11dc2c
         CALL    FP_ADD                  ; 2ADE  cdc026
@@ -5637,18 +6122,18 @@ L2B15:
         PUSH    AF                      ; 2B15  f5
         XOR     A                       ; 2B16  af
         PUSH    AF                      ; 2B17  f5
-        LD      DE,42ECH                ; 2B18  11ec42
+        LD      DE,V_42EC               ; 2B18  11ec42
         CALL    FAC_STORE               ; 2B1B  cdae26
         LD      DE,K_PI_TWO             ; 2B1E  11222d
         CALL    FP_DIV                  ; 2B21  cdec27
         CALL    FP_FLOOR                ; 2B24  cd5729
         LD      DE,K_PI_TWO             ; 2B27  11222d
         CALL    FP_MUL                  ; 2B2A  cd8a27
-        LD      DE,42ECH                ; 2B2D  11ec42
+        LD      DE,V_42EC               ; 2B2D  11ec42
         CALL    FP_SUB                  ; 2B30  cdb326
         CALL    FP_NEG                  ; 2B33  cd4729
 L2B36:
-        LD      DE,42ECH                ; 2B36  11ec42
+        LD      DE,V_42EC               ; 2B36  11ec42
         CALL    FAC_STORE               ; 2B39  cdae26
         LD      DE,K_FP_TENTH           ; 2B3C  11092d
         CALL    FP_SUB                  ; 2B3F  cdb326
@@ -5658,18 +6143,18 @@ L2B36:
         POP     AF                      ; 2B48  f1
         INC     A                       ; 2B49  3c
         PUSH    AF                      ; 2B4A  f5
-        LD      DE,42ECH                ; 2B4B  11ec42
+        LD      DE,V_42EC               ; 2B4B  11ec42
         CALL    FAC_LOAD                ; 2B4E  cd9f26
         LD      DE,K_FP_THREE           ; 2B51  11e62c
         CALL    FP_DIV                  ; 2B54  cdec27
         JR      L2B36                   ; 2B57  18dd
 L2B59:
-        LD      DE,42ECH                ; 2B59  11ec42
+        LD      DE,V_42EC               ; 2B59  11ec42
         CALL    FAC_LOAD                ; 2B5C  cd9f26
         CALL    FP_SQUARE               ; 2B5F  cdc728
         LD      DE,K_FP_HALF            ; 2B62  11132d
         CALL    FP_MUL                  ; 2B65  cd8a27
-        LD      DE,42F1H                ; 2B68  11f142
+        LD      DE,V_42F1               ; 2B68  11f142
         CALL    FAC_STORE               ; 2B6B  cdae26
         LD      DE,K_FP_HALF            ; 2B6E  11132d
         CALL    FP_MUL                  ; 2B71  cd8a27
@@ -5677,13 +6162,13 @@ L2B59:
         CALL    FP_DIV                  ; 2B77  cdec27
         LD      DE,K_FP_ONE             ; 2B7A  11dc2c
         CALL    FP_SUB                  ; 2B7D  cdb326
-        LD      DE,42F1H                ; 2B80  11f142
+        LD      DE,V_42F1               ; 2B80  11f142
         CALL    FP_MUL                  ; 2B83  cd8a27
         LD      DE,K_FP_THREE           ; 2B86  11e62c
         CALL    FP_DIV                  ; 2B89  cdec27
         LD      DE,K_FP_ONE             ; 2B8C  11dc2c
         CALL    FP_ADD                  ; 2B8F  cdc026
-        LD      DE,42ECH                ; 2B92  11ec42
+        LD      DE,V_42EC               ; 2B92  11ec42
         CALL    FP_MUL                  ; 2B95  cd8a27
         POP     AF                      ; 2B98  f1
         JR      z,L2BBE                 ; 2B99  2823
@@ -5691,14 +6176,14 @@ L2B59:
 ; ---- Dreifachwinkelformel: s <- -(4*s*s-3)*s; Schleife je vorheriger Drittelung.
 FP_SIN_TRIPLE:
         PUSH    BC                      ; 2B9C  c5
-        LD      DE,42F1H                ; 2B9D  11f142
+        LD      DE,V_42F1               ; 2B9D  11f142
         CALL    FAC_STORE               ; 2BA0  cdae26
         CALL    FP_SQUARE               ; 2BA3  cdc728
         LD      DE,K_FP_FOUR            ; 2BA6  11eb2c
         CALL    FP_MUL                  ; 2BA9  cd8a27
         LD      DE,K_FP_THREE           ; 2BAC  11e62c
         CALL    FP_SUB                  ; 2BAF  cdb326
-        LD      DE,42F1H                ; 2BB2  11f142
+        LD      DE,V_42F1               ; 2BB2  11f142
         CALL    FP_MUL                  ; 2BB5  cd8a27
         CALL    FP_NEG                  ; 2BB8  cd4729
         POP     BC                      ; 2BBB  c1
@@ -5739,10 +6224,10 @@ L2BD6:
         INC     C                       ; 2BE8  0c
         PUSH    BC                      ; 2BE9  c5
 L2BEA:
-        LD      DE,42F6H                ; 2BEA  11f642
+        LD      DE,V_42F6               ; 2BEA  11f642
         CALL    FAC_STORE               ; 2BED  cdae26
         CALL    FP_SQUARE               ; 2BF0  cdc728
-        LD      DE,42F1H                ; 2BF3  11f142
+        LD      DE,V_42F1               ; 2BF3  11f142
         CALL    FAC_STORE               ; 2BF6  cdae26
         LD      DE,K_ATN_A3             ; 2BF9  114f2d
         CALL    FP_ADD                  ; 2BFC  cdc026
@@ -5751,21 +6236,21 @@ L2BEA:
         CALL    FP_MUL                  ; 2C05  cd8a27
         LD      DE,K_ATN_A2             ; 2C08  114a2d
         CALL    FP_ADD                  ; 2C0B  cdc026
-        LD      DE,42F1H                ; 2C0E  11f142
+        LD      DE,V_42F1               ; 2C0E  11f142
         CALL    FP_ADD                  ; 2C11  cdc026
         CALL    FP_RECIPROCAL           ; 2C14  cdb629
         LD      DE,K_ATN_B1             ; 2C17  11592d
         CALL    FP_MUL                  ; 2C1A  cd8a27
         LD      DE,K_ATN_A1             ; 2C1D  11452d
         CALL    FP_ADD                  ; 2C20  cdc026
-        LD      DE,42F1H                ; 2C23  11f142
+        LD      DE,V_42F1               ; 2C23  11f142
         CALL    FP_ADD                  ; 2C26  cdc026
         CALL    FP_RECIPROCAL           ; 2C29  cdb629
         LD      DE,K_ATN_B0             ; 2C2C  11542d
         CALL    FP_MUL                  ; 2C2F  cd8a27
         LD      DE,K_ATN_A0             ; 2C32  11402d
         CALL    FP_ADD                  ; 2C35  cdc026
-        LD      DE,42F6H                ; 2C38  11f642
+        LD      DE,V_42F6               ; 2C38  11f642
         CALL    FP_MUL                  ; 2C3B  cd8a27
         POP     BC                      ; 2C3E  c1
         DEC     C                       ; 2C3F  0d
@@ -5795,7 +6280,7 @@ FP_POWER:
         CALL    nc,L1F3F                ; 2C61  d43f1f
         LD      HL,(ARG)                ; 2C64  2ae742
         PUSH    HL                      ; 2C67  e5
-        LD      HL,(42E9H)              ; 2C68  2ae942
+        LD      HL,(V_42E9)             ; 2C68  2ae942
         PUSH    HL                      ; 2C6B  e5
         LD      A,(ARG_EXP)             ; 2C6C  3aeb42
         PUSH    AF                      ; 2C6F  f5
@@ -5803,7 +6288,7 @@ FP_POWER:
         POP     AF                      ; 2C73  f1
         LD      (ARG_EXP),A             ; 2C74  32eb42
         POP     HL                      ; 2C77  e1
-        LD      (42E9H),HL              ; 2C78  22e942
+        LD      (V_42E9),HL             ; 2C78  22e942
         POP     HL                      ; 2C7B  e1
         LD      (ARG),HL                ; 2C7C  22e742
         CALL    FP_MUL_ARG              ; 2C7F  cd8d27
@@ -5819,23 +6304,23 @@ FP_POWER:
 X_RND:
         LD      A,2                     ; 2C85  3e02
         LD      (FAC_TYPE),A            ; 2C87  32e142
-        LD      DE,41D5H                ; 2C8A  11d541
+        LD      DE,V_41D5               ; 2C8A  11d541
         CALL    FAC_LOAD                ; 2C8D  cd9f26
         LD      DE,K_RND_FACTOR         ; 2C90  11722d
         CALL    FP_MUL                  ; 2C93  cd8a27
         LD      DE,K_RND_INCREMENT      ; 2C96  11772d
         CALL    FP_ADD                  ; 2C99  cdc026
-        LD      DE,42F1H                ; 2C9C  11f142
+        LD      DE,V_42F1               ; 2C9C  11f142
         CALL    FAC_STORE               ; 2C9F  cdae26
         LD      DE,K_RND_MODULUS        ; 2CA2  117c2d
         CALL    FP_DIV                  ; 2CA5  cdec27
         CALL    FP_FLOOR                ; 2CA8  cd5729
         LD      DE,K_RND_MODULUS        ; 2CAB  117c2d
         CALL    FP_MUL                  ; 2CAE  cd8a27
-        LD      DE,42F1H                ; 2CB1  11f142
+        LD      DE,V_42F1               ; 2CB1  11f142
         CALL    FP_SUB                  ; 2CB4  cdb326
         CALL    FP_NEG                  ; 2CB7  cd4729
-        LD      DE,41D5H                ; 2CBA  11d541
+        LD      DE,V_41D5               ; 2CBA  11d541
         CALL    FAC_STORE               ; 2CBD  cdae26
         LD      DE,K_RND_MODULUS        ; 2CC0  117c2d
         JP      FP_DIV                  ; 2CC3  c3ec27
@@ -5922,20 +6407,87 @@ K_RND_INCREMENT:
         DB      00H,0CAH,0A5H,61H,11H   ; 2D77 RND: Inkrement 99991.15625, NICHT 99991
 K_RND_MODULUS:
         DB      00H,60H,2DH,61H,12H     ; 2D7C RND: Modulus 199019
-        DB      00H,11H,04H,40H,21H,00H,00H,06H ; 2D81 ...@!...
-        DB      11H,1AH,13H,0D6H,30H,28H,03H,3DH ; 2D89 ....0(.=
-        DB      0C0H,37H,0EDH,6AH,10H,0F3H,18H,15H ; 2D91 .7.j....
-        DB      11H,04H,40H,21H,00H,00H,0E5H,39H ; 2D99 ..@!...9
-        DB      0CDH,0B5H,2DH,38H,0DH,0EDH,6FH,23H ; 2DA1 ..-8..o#
-        DB      0EDH,6FH,2BH,28H,0F3H,3EH,1FH,0C3H ; 2DA9 .o+(.>..
-        DB      59H,33H,0E1H,0C9H,1AH,13H,0D6H,30H ; 2DB1 Y3.....0
-        DB      0D8H,0FEH,10H,3FH,0D0H,0D6H,07H,0FEH ; 2DB9 ...?....
-        DB      0AH,0D8H,0FEH,10H,3FH,0C9H,11H,03H ; 2DC1 ....?...
-        DB      40H,21H,00H,00H,1AH,0FEH,30H,3FH ; 2DC9 @!....0?
-        DB      0D0H,0FEH,3AH,0D0H,3EH,0F0H,0A4H,37H ; 2DD1 ..:.>..7
-        DB      0C0H,44H,4DH,29H,29H,09H,29H,1AH ; 2DD9 .DM)).).
-        DB      13H,0E6H,0FH,85H,6FH,3EH,00H,8CH ; 2DE1 ....o>..
-        DB      67H,37H,0F8H,18H,0DFH   ; 2DE9 g7...
+        DB      00H                     ; 2D81 .
+L2D82:
+        LD      DE,V_4004               ; 2D82  110440
+        LD      HL,0                    ; 2D85  210000
+        LD      B,11H                   ; 2D88  0611
+L2D8A:
+        LD      A,(DE)                  ; 2D8A  1a
+        INC     DE                      ; 2D8B  13
+        SUB     30H                     ; 2D8C  d630
+        JR      z,L2D93                 ; 2D8E  2803
+        DEC     A                       ; 2D90  3d
+        RET     nz                      ; 2D91  c0
+        SCF                             ; 2D92  37
+L2D93:
+        ADC     HL,HL                   ; 2D93  ed6a
+        DJNZ    L2D8A                   ; 2D95  10f3
+        JR      L2DAE                   ; 2D97  1815
+L2D99:
+        LD      DE,V_4004               ; 2D99  110440
+        LD      HL,0                    ; 2D9C  210000
+        PUSH    HL                      ; 2D9F  e5
+        ADD     HL,SP                   ; 2DA0  39
+L2DA1:
+        CALL    L2DB5                   ; 2DA1  cdb52d
+        JR      c,L2DB3                 ; 2DA4  380d
+        RLD                             ; 2DA6  ed6f
+        INC     HL                      ; 2DA8  23
+        RLD                             ; 2DA9  ed6f
+        DEC     HL                      ; 2DAB  2b
+        JR      z,L2DA1                 ; 2DAC  28f3
+L2DAE:
+        LD      A,1FH                   ; 2DAE  3e1f
+        JP      ERROR                   ; 2DB0  c35933
+L2DB3:
+        POP     HL                      ; 2DB3  e1
+        RET                             ; 2DB4  c9
+L2DB5:
+        LD      A,(DE)                  ; 2DB5  1a
+        INC     DE                      ; 2DB6  13
+        SUB     30H                     ; 2DB7  d630
+        RET     c                       ; 2DB9  d8
+        CP      10H                     ; 2DBA  fe10
+        CCF                             ; 2DBC  3f
+        RET     nc                      ; 2DBD  d0
+        SUB     7                       ; 2DBE  d607
+        CP      10                      ; 2DC0  fe0a
+        RET     c                       ; 2DC2  d8
+        CP      10H                     ; 2DC3  fe10
+        CCF                             ; 2DC5  3f
+        RET                             ; 2DC6  c9
+L2DC7:
+        LD      DE,V_4003               ; 2DC7  110340
+        LD      HL,0                    ; 2DCA  210000
+L2DCD:
+        LD      A,(DE)                  ; 2DCD  1a
+        CP      30H                     ; 2DCE  fe30
+        CCF                             ; 2DD0  3f
+        RET     nc                      ; 2DD1  d0
+        CP      3AH                     ; 2DD2  fe3a
+        RET     nc                      ; 2DD4  d0
+        LD      A,0F0H                  ; 2DD5  3ef0
+        AND     H                       ; 2DD7  a4
+        SCF                             ; 2DD8  37
+        RET     nz                      ; 2DD9  c0
+        LD      B,H                     ; 2DDA  44
+        LD      C,L                     ; 2DDB  4d
+        ADD     HL,HL                   ; 2DDC  29
+        ADD     HL,HL                   ; 2DDD  29
+        ADD     HL,BC                   ; 2DDE  09
+        ADD     HL,HL                   ; 2DDF  29
+        LD      A,(DE)                  ; 2DE0  1a
+        INC     DE                      ; 2DE1  13
+        AND     15                      ; 2DE2  e60f
+        ADD     A,L                     ; 2DE4  85
+        LD      L,A                     ; 2DE5  6f
+        LD      A,0                     ; 2DE6  3e00
+        ADC     A,H                     ; 2DE8  8c
+        LD      H,A                     ; 2DE9  67
+        SCF                             ; 2DEA  37
+        RET     m                       ; 2DEB  f8
+        JR      L2DCD                   ; 2DEC  18df
 UINT8_TO_DECIMAL:
         LD      L,A                     ; 2DEE  6f
         LD      H,0                     ; 2DEF  2600
@@ -5976,8 +6528,8 @@ L2E16:
 ;=====================================================================
 FP_PARSE_DECIMAL:
         EX      DE,HL                   ; 2E1B  eb
-        LD      (42F6H),HL              ; 2E1C  22f642
-        LD      HL,42F5H                ; 2E1F  21f542
+        LD      (V_42F6),HL             ; 2E1C  22f642
+        LD      HL,V_42F5               ; 2E1F  21f542
         LD      (HL),10                 ; 2E22  360a
         LD      B,13H                   ; 2E24  0613
         XOR     A                       ; 2E26  af
@@ -5988,7 +6540,7 @@ L2E27:
 L2E2B:
         CALL    FP_READ_DIGIT           ; 2E2B  cd882f
         JR      c,L2E89                 ; 2E2E  3859
-        LD      HL,42F1H                ; 2E30  21f142
+        LD      HL,V_42F1               ; 2E30  21f142
         SET     0,(HL)                  ; 2E33  cbc6
         AND     A                       ; 2E35  a7
         JR      nz,L2E3C                ; 2E36  2004
@@ -6047,7 +6599,7 @@ L2E7E:
 L2E89:
         ADD     A,2                     ; 2E89  c602
         JR      nz,L2E98                ; 2E8B  200b
-        LD      HL,42F1H                ; 2E8D  21f142
+        LD      HL,V_42F1               ; 2E8D  21f142
         BIT     2,(HL)                  ; 2E90  cb56
         JR      nz,L2EE6                ; 2E92  2052
         SET     2,(HL)                  ; 2E94  cbd6
@@ -6057,7 +6609,7 @@ L2E98:
         JR      nz,L2EA2                ; 2E99  2007
         LD      A,80H                   ; 2E9B  3e80
 L2E9D:
-        LD      (42F4H),A               ; 2E9D  32f442
+        LD      (V_42F4),A              ; 2E9D  32f442
         JR      L2E2B                   ; 2EA0  1889
 L2EA2:
         ADD     A,2                     ; 2EA2  c602
@@ -6086,7 +6638,7 @@ L2EC2:
         JR      nz,L2EC8                ; 2EC4  2002
         NEG                             ; 2EC6  ed44
 L2EC8:
-        LD      (42F3H),A               ; 2EC8  32f342
+        LD      (V_42F3),A              ; 2EC8  32f342
         JR      L2EE6                   ; 2ECB  1819
 L2ECD:
         ADD     A,3                     ; 2ECD  c603
@@ -6101,14 +6653,14 @@ L2ED4:
 L2EDB:
         ADD     A,1BH                   ; 2EDB  c61b
         JR      nz,L2EE6                ; 2EDD  2007
-        LD      A,(42F1H)               ; 2EDF  3af142
+        LD      A,(V_42F1)              ; 2EDF  3af142
         RRA                             ; 2EE2  1f
         JP      nc,L2E2B                ; 2EE3  d22b2e
 L2EE6:
-        LD      HL,42F1H                ; 2EE6  21f142
+        LD      HL,V_42F1               ; 2EE6  21f142
         BIT     0,(HL)                  ; 2EE9  cb46
         JR      nz,L2EFE                ; 2EEB  2011
-        LD      A,(42F3H)               ; 2EED  3af342
+        LD      A,(V_42F3)              ; 2EED  3af342
         AND     A                       ; 2EF0  a7
         JR      z,L2F58                 ; 2EF1  2865
         LD      L,0E2H                  ; 2EF3  2ee2
@@ -6127,7 +6679,7 @@ L2F02:
         LD      (HL),1FH                ; 2F04  361f
         CALL    FP_NORMALIZE            ; 2F06  cd5e28
         CALL    ARG_SET_ONE             ; 2F09  cd7030
-        LD      HL,42F3H                ; 2F0C  21f342
+        LD      HL,V_42F3               ; 2F0C  21f342
         LD      A,(HL)                  ; 2F0F  7e
         DEC     L                       ; 2F10  2d
         SUB     (HL)                    ; 2F11  96
@@ -6152,7 +6704,7 @@ L2F2C:
         JP      m,L2F46                 ; 2F2F  fa462f
         DEC     C                       ; 2F32  0d
         JR      nz,L2F1C                ; 2F33  20e7
-        LD      A,(42F2H)               ; 2F35  3af242
+        LD      A,(V_42F2)              ; 2F35  3af242
         AND     A                       ; 2F38  a7
         JP      m,L2F41                 ; 2F39  fa412f
         CALL    FP_MUL_ARG              ; 2F3C  cd8d27
@@ -6161,13 +6713,13 @@ L2F41:
         CALL    FP_DIV_ARG              ; 2F41  cdef27
         JR      L2F50                   ; 2F44  180a
 L2F46:
-        LD      A,(42F2H)               ; 2F46  3af242
+        LD      A,(V_42F2)              ; 2F46  3af242
         AND     A                       ; 2F49  a7
         JP      m,L2EFB                 ; 2F4A  fafb2e
 L2F4D:
         JP      FP_OVERFLOW             ; 2F4D  c3ca2c
 L2F50:
-        LD      A,(42F4H)               ; 2F50  3af442
+        LD      A,(V_42F4)              ; 2F50  3af442
         LD      HL,FAC_SIGN_MSB         ; 2F53  21e542
         XOR     (HL)                    ; 2F56  ae
         LD      (HL),A                  ; 2F57  77
@@ -6205,16 +6757,16 @@ L2F7A:
         LD      (DE),A                  ; 2F7C  12
         DEC     DE                      ; 2F7D  1b
         DJNZ    L2F7A                   ; 2F7E  10fa
-        LD      A,(42ECH)               ; 2F80  3aec42
+        LD      A,(V_42EC)              ; 2F80  3aec42
         RRA                             ; 2F83  1f
-        LD      (42ECH),A               ; 2F84  32ec42
+        LD      (V_42EC),A              ; 2F84  32ec42
         RET                             ; 2F87  c9
 ; ---- Textzeichen holen; ASCII 0..9 als Ziffer liefern, andere Zeichen mit Carry markieren.
 FP_READ_DIGIT:
-        LD      HL,(42F6H)              ; 2F88  2af642
+        LD      HL,(V_42F6)             ; 2F88  2af642
         LD      A,(HL)                  ; 2F8B  7e
         INC     HL                      ; 2F8C  23
-        LD      (42F6H),HL              ; 2F8D  22f642
+        LD      (V_42F6),HL             ; 2F8D  22f642
         AND     7FH                     ; 2F90  e67f
         ADD     A,0C6H                  ; 2F92  c6c6
         RET     c                       ; 2F94  d8
@@ -6248,7 +6800,7 @@ L2FA4:
 ;=====================================================================
 NUMBER_FORMAT:
         PUSH    DE                      ; 2FB2  d5
-        LD      HL,(42FBH)              ; 2FB3  2afb42
+        LD      HL,(V_42FB)             ; 2FB3  2afb42
         BIT     5,L                     ; 2FB6  cb6d
         JR      z,FP_FORMAT_DECIMAL     ; 2FB8  2844
         BIT     6,L                     ; 2FBA  cb75
@@ -6270,7 +6822,7 @@ L2FD4:
         CALL    UINT16_TO_HEX           ; 2FD4  cd2932
 L2FD7:
         DEC     DE                      ; 2FD7  1b
-        LD      HL,(42FBH)              ; 2FD8  2afb42
+        LD      HL,(V_42FB)             ; 2FD8  2afb42
         LD      A,L                     ; 2FDB  7d
         AND     1FH                     ; 2FDC  e61f
         LD      C,A                     ; 2FDE  4f
@@ -6304,7 +6856,7 @@ FP_FORMAT_DECIMAL:
         DEC     A                       ; 3001  3d
         PUSH    AF                      ; 3002  f5
         CALL    z,INT16_TO_FP           ; 3003  cc7432
-        LD      HL,(42FBH)              ; 3006  2afb42
+        LD      HL,(V_42FB)             ; 3006  2afb42
         LD      BC,0700H                ; 3009  010007
         POP     AF                      ; 300C  f1
         JR      z,L3012                 ; 300D  2803
@@ -6313,18 +6865,18 @@ L3012:
         LD      A,H                     ; 3012  7c
         OR      L                       ; 3013  b5
         JR      nz,L301A                ; 3014  2004
-        LD      (42FBH),BC              ; 3016  ed43fb42
+        LD      (V_42FB),BC             ; 3016  ed43fb42
 L301A:
         POP     HL                      ; 301A  e1
-        LD      (42F6H),HL              ; 301B  22f642
-        LD      (42F8H),HL              ; 301E  22f842
+        LD      (V_42F6),HL             ; 301B  22f642
+        LD      (V_42F8),HL             ; 301E  22f842
         LD      HL,(FAC_SIGN_MSB)       ; 3021  2ae542
-        LD      (42F1H),HL              ; 3024  22f142
+        LD      (V_42F1),HL             ; 3024  22f142
         RES     7,L                     ; 3027  cbbd
         LD      (FAC_SIGN_MSB),HL       ; 3029  22e542
         XOR     A                       ; 302C  af
 L302D:
-        LD      (42F3H),A               ; 302D  32f342
+        LD      (V_42F3),A              ; 302D  32f342
         CALL    ARG_SET_ONE             ; 3030  cd7030
         LD      HL,FAC_EXP              ; 3033  21e642
         LD      C,(HL)                  ; 3036  4e
@@ -6408,10 +6960,10 @@ FP_DECIMAL_DIGIT:
         RRA                             ; 30B3  1f
         AND     15                      ; 30B4  e60f
         OR      30H                     ; 30B6  f630
-        LD      (42F2H),A               ; 30B8  32f242
+        LD      (V_42F2),A              ; 30B8  32f242
         CALL    L2F9A                   ; 30BB  cd9a2f
         RES     7,(HL)                  ; 30BE  cbbe
-        LD      A,(42F2H)               ; 30C0  3af242
+        LD      A,(V_42F2)              ; 30C0  3af242
         RET                             ; 30C3  c9
 K_FP_1E10:
         DB      80H,7CH,81H,4AH,22H     ; 30C4 10000000000 (Dezimalausgabe grosser Betraege)
@@ -6423,7 +6975,7 @@ L30C9:
         DEC     (HL)                    ; 30D2  35
         CALL    FP_DECIMAL_DIGIT        ; 30D3  cda830
 L30D6:
-        LD      DE,(42FBH)              ; 30D6  ed5bfb42
+        LD      DE,(V_42FB)             ; 30D6  ed5bfb42
         BIT     7,E                     ; 30DA  cb7b
         RES     7,E                     ; 30DC  cbbb
         JR      z,L30E4                 ; 30DE  2804
@@ -6475,13 +7027,13 @@ L3113:
         CALL    L311D                   ; 3118  cd1d31
         JR      L3113                   ; 311B  18f6
 L311D:
-        LD      HL,(42F8H)              ; 311D  2af842
+        LD      HL,(V_42F8)             ; 311D  2af842
         INC     HL                      ; 3120  23
         LD      (HL),A                  ; 3121  77
-        LD      (42F8H),HL              ; 3122  22f842
+        LD      (V_42F8),HL             ; 3122  22f842
         RET                             ; 3125  c9
 L3126:
-        LD      A,(42F2H)               ; 3126  3af242
+        LD      A,(V_42F2)              ; 3126  3af242
         CALL    L311D                   ; 3129  cd1d31
         CALL    FP_DECIMAL_DIGIT        ; 312C  cda830
 L312F:
@@ -6490,7 +7042,7 @@ L312F:
 ; ---- Verworfene Folgeziffer >=5: Betrag dezimal aufrunden, Uebertrag ueber 9er-Kette.
         LD      A,(ARG)                 ; 3133  3ae742
         LD      B,A                     ; 3136  47
-        LD      HL,(42F8H)              ; 3137  2af842
+        LD      HL,(V_42F8)             ; 3137  2af842
         LD      A,(HL)                  ; 313A  7e
         DEC     HL                      ; 313B  2b
         DEC     B                       ; 313C  05
@@ -6509,11 +7061,11 @@ FP_DECIMAL_ROUND_CARRY:
         DJNZ    FP_DECIMAL_ROUND_CARRY  ; 314F  10f2
         INC     HL                      ; 3151  23
         LD      (HL),31H                ; 3152  3631
-        LD      HL,42F3H                ; 3154  21f342
+        LD      HL,V_42F3               ; 3154  21f342
         INC     (HL)                    ; 3157  34
 L3158:
-        LD      BC,(42FBH)              ; 3158  ed4bfb42
-        LD      HL,(42F6H)              ; 315C  2af642
+        LD      BC,(V_42FB)             ; 3158  ed4bfb42
+        LD      HL,(V_42F6)             ; 315C  2af642
         SCF                             ; 315F  37
         LD      A,L                     ; 3160  7d
         ADC     A,B                     ; 3161  88
@@ -6525,7 +7077,7 @@ L3166:
         BIT     7,C                     ; 3168  cb79
         JP      nz,L31F5                ; 316A  c2f531
         EX      DE,HL                   ; 316D  eb
-        LD      HL,42F3H                ; 316E  21f342
+        LD      HL,V_42F3               ; 316E  21f342
         BIT     7,(HL)                  ; 3171  cb7e
         JR      nz,L3193                ; 3173  201e
         LD      A,C                     ; 3175  79
@@ -6543,14 +7095,14 @@ L317A:
         JP      m,L3193                 ; 3184  fa9331
         INC     A                       ; 3187  3c
         LD      B,A                     ; 3188  47
-        LD      HL,(42F8H)              ; 3189  2af842
+        LD      HL,(V_42F8)             ; 3189  2af842
 L318C:
         LD      (HL),30H                ; 318C  3630
         INC     HL                      ; 318E  23
         DJNZ    L318C                   ; 318F  10fb
         JR      L3196                   ; 3191  1803
 L3193:
-        LD      HL,(42F8H)              ; 3193  2af842
+        LD      HL,(V_42F8)             ; 3193  2af842
 L3196:
         DEC     HL                      ; 3196  2b
         EX      DE,HL                   ; 3197  eb
@@ -6565,7 +7117,7 @@ L3196:
         LD      (HL),2EH                ; 31A3  362e
         DEC     HL                      ; 31A5  2b
 L31A6:
-        LD      A,(42F3H)               ; 31A6  3af342
+        LD      A,(V_42F3)              ; 31A6  3af342
         OR      A                       ; 31A9  b7
         JP      p,L31B2                 ; 31AA  f2b231
         LD      (HL),30H                ; 31AD  3630
@@ -6580,7 +7132,7 @@ L31B5:
         LDDR                            ; 31B7  edb8
         EX      DE,HL                   ; 31B9  eb
 L31BA:
-        LD      A,(42F1H)               ; 31BA  3af142
+        LD      A,(V_42F1)              ; 31BA  3af142
         OR      A                       ; 31BD  b7
         JP      p,L31C4                 ; 31BE  f2c431
         LD      (HL),2DH                ; 31C1  362d
@@ -6588,7 +7140,7 @@ L31BA:
 L31C4:
         LD      D,H                     ; 31C4  54
         LD      E,L                     ; 31C5  5d
-        LD      BC,(42F6H)              ; 31C6  ed4bf642
+        LD      BC,(V_42F6)             ; 31C6  ed4bf642
         SBC     HL,BC                   ; 31CA  ed42
         JR      z,L31D7                 ; 31CC  2809
         LD      B,L                     ; 31CE  45
@@ -6601,18 +7153,18 @@ L31D0:
 L31D7:
         EX      DE,HL                   ; 31D7  eb
 L31D8:
-        LD      A,(42FCH)               ; 31D8  3afc42
+        LD      A,(V_42FC)              ; 31D8  3afc42
         LD      B,A                     ; 31DB  47
         LD      HL,0                    ; 31DC  210000
-        LD      (42FBH),HL              ; 31DF  22fb42
+        LD      (V_42FB),HL             ; 31DF  22fb42
         RET                             ; 31E2  c9
 L31E3:
         LD      A,(ARG)                 ; 31E3  3ae742
         DEC     A                       ; 31E6  3d
         LD      C,A                     ; 31E7  4f
-        LD      HL,(42F6H)              ; 31E8  2af642
+        LD      HL,(V_42F6)             ; 31E8  2af642
         ADD     A,8                     ; 31EB  c608
-        LD      (42FCH),A               ; 31ED  32fc42
+        LD      (V_42FC),A              ; 31ED  32fc42
         ADD     A,L                     ; 31F0  85
         LD      L,A                     ; 31F1  6f
         JR      nc,L31F5                ; 31F2  3001
@@ -6620,7 +7172,7 @@ L31E3:
 ; ---- Exponentialausgabe: E, explizites Vorzeichen und zwei Dezimalziffern des Exponenten.
 L31F5:
         DEC     HL                      ; 31F5  2b
-        LD      A,(42F3H)               ; 31F6  3af342
+        LD      A,(V_42F3)              ; 31F6  3af342
         LD      B,0FFH                  ; 31F9  06ff
         OR      A                       ; 31FB  b7
         JP      p,L3201                 ; 31FC  f20132
@@ -6638,7 +7190,7 @@ L3203:
         OR      30H                     ; 320D  f630
         LD      (HL),A                  ; 320F  77
         DEC     HL                      ; 3210  2b
-        LD      A,(42F3H)               ; 3211  3af342
+        LD      A,(V_42F3)              ; 3211  3af342
         OR      A                       ; 3214  b7
         LD      A,2BH                   ; 3215  3e2b
         JP      p,L321C                 ; 3217  f21c32
@@ -6649,7 +7201,7 @@ L321C:
         LD      (HL),45H                ; 321E  3645
         LD      A,0C5H                  ; 3220  3ec5
         EX      DE,HL                   ; 3222  eb
-        LD      (42F3H),A               ; 3223  32f342
+        LD      (V_42F3),A              ; 3223  32f342
         JP      L3193                   ; 3226  c39331
 UINT16_TO_HEX:
         LD      A,H                     ; 3229  7c
@@ -6702,7 +7254,7 @@ L3261:
         LD      H,10H                   ; 3265  2610
         LD      L,88H                   ; 3267  2e88
 L3269:
-        LD      (42FBH),HL              ; 3269  22fb42
+        LD      (V_42FB),HL             ; 3269  22fb42
         RET                             ; 326C  c9
 L326D:
         BIT     7,E                     ; 326D  cb7b
@@ -6712,19 +7264,19 @@ L326D:
 ; ---- Signed-16-Bit-Integer in FAC auf 32 Bit vorzeichenerweitern und exakt nach FP wandeln.
 INT16_TO_FP:
         LD      HL,0                    ; 3274  210000
-        LD      A,(42E3H)               ; 3277  3ae342
+        LD      A,(V_42E3)              ; 3277  3ae342
         RLA                             ; 327A  17
         JR      nc,L327E                ; 327B  3001
         DEC     HL                      ; 327D  2b
 L327E:
-        LD      (42E4H),HL              ; 327E  22e442
+        LD      (V_42E4),HL             ; 327E  22e442
 ; ---- Signed-32-Bit-Wert nach FP: Typ=2, e=31, ggf. Betrag bilden und normalisieren.
 INT32_TO_FP:
         LD      A,2                     ; 3281  3e02
         LD      (FAC_TYPE),A            ; 3283  32e142
         LD      A,1FH                   ; 3286  3e1f
         LD      (FAC_EXP),A             ; 3288  32e642
-        LD      HL,(42E4H)              ; 328B  2ae442
+        LD      HL,(V_42E4)             ; 328B  2ae442
         LD      DE,(FAC)                ; 328E  ed5be242
         BIT     7,H                     ; 3292  cb7c
         JP      z,FP_NORMALIZE          ; 3294  ca5e28
@@ -6739,7 +7291,7 @@ INT32_TO_FP:
         LD      A,(FAC_EXP)             ; 32A8  3ae642
         INC     A                       ; 32AB  3c
         LD      (FAC_EXP),A             ; 32AC  32e642
-        LD      (42E4H),HL              ; 32AF  22e442
+        LD      (V_42E4),HL             ; 32AF  22e442
         LD      (FAC),DE                ; 32B2  ed53e242
         RET                             ; 32B6  c9
 
@@ -6771,7 +7323,7 @@ L32CC:
         LD      A,1FH                   ; 32D0  3e1f
         JP      c,ERROR                 ; 32D2  da5933
         PUSH    HL                      ; 32D5  e5
-        LD      HL,(42E4H)              ; 32D6  2ae442
+        LD      HL,(V_42E4)             ; 32D6  2ae442
         RES     7,H                     ; 32D9  cbbc
         JR      z,L32E7                 ; 32DB  280a
 L32DD:
@@ -6792,7 +7344,7 @@ L32E7:
 L32F3:
         LD      (FAC),HL                ; 32F3  22e242
         RET                             ; 32F6  c9
-        DB      0EDH,5BH,9AH,41H        ; 32F7 .[.A
+        LD      DE,(V_419A)             ; 32F7  ed5b9a41
 L32FB:
         EX      DE,HL                   ; 32FB  eb
         LD      A,(HL)                  ; 32FC  7e
@@ -6808,7 +7360,7 @@ L32FB:
         EX      DE,HL                   ; 3306  eb
         RET                             ; 3307  c9
 L3308:
-        LD      DE,(419AH)              ; 3308  ed5b9a41
+        LD      DE,(V_419A)             ; 3308  ed5b9a41
 L330C:
         LD      H,D                     ; 330C  62
         LD      L,E                     ; 330D  6b
@@ -6836,14 +7388,14 @@ L330C:
 ; LINE_NEXT: zur folgenden Zeile weiterschalten.
 ;=====================================================================
 LINE_NEXT:
-        LD      HL,(419AH)              ; 331F  2a9a41
+        LD      HL,(V_419A)             ; 331F  2a9a41
         LD      A,(HL)                  ; 3322  7e
         INC     HL                      ; 3323  23
         LD      H,(HL)                  ; 3324  66
         LD      L,A                     ; 3325  6f
 ; ---- LINE_SET: HL als aktuelle Zeile setzen, Zeilennummer nach DE
 LINE_SET:
-        LD      (419AH),HL              ; 3326  229a41
+        LD      (V_419A),HL             ; 3326  229a41
         LD      E,(HL)                  ; 3329  5e
         INC     HL                      ; 332A  23
         LD      D,(HL)                  ; 332B  56
@@ -6853,7 +7405,7 @@ LINE_SET:
         EX      DE,HL                   ; 332F  eb
         RET                             ; 3330  c9
 L3331:
-        LD      DE,(419AH)              ; 3331  ed5b9a41
+        LD      DE,(V_419A)             ; 3331  ed5b9a41
 ; ---- LINE_FIND: Zeile mit Nummer DE suchen
 LINE_FIND:
         LD      C,A                     ; 3335  4f
@@ -6880,7 +7432,7 @@ L3350:
         XOR     A                       ; 3351  af
         RET                             ; 3352  c9
 L3353:
-        LD      HL,(419AH)              ; 3353  2a9a41
+        LD      HL,(V_419A)             ; 3353  2a9a41
         LD      C,(HL)                  ; 3356  4e
         EX      DE,HL                   ; 3357  eb
         RET                             ; 3358  c9
@@ -6896,9 +7448,9 @@ ERROR:
         BIT     7,A                     ; 3359  cb7f
         RES     7,A                     ; 335B  cbbf
         PUSH    AF                      ; 335D  f5
-        LD      (41E3H),A               ; 335E  32e341
-        LD      HL,(41DAH)              ; 3361  2ada41
-        LD      (41E1H),HL              ; 3364  22e141
+        LD      (V_41E3),A              ; 335E  32e341
+        LD      HL,(V_41DA)             ; 3361  2ada41
+        LD      (V_41E1),HL             ; 3364  22e141
         LD      HL,MSG_ERROR            ; 3367  218f34
         JR      z,L336F                 ; 336A  2803
         LD      HL,MSG_WARNING          ; 336C  219534
@@ -6911,18 +7463,18 @@ L336F:
         CALL    L257E                   ; 337A  cd7e25
         CALL    L259C                   ; 337D  cd9c25
         CALL    CH_CRLF                 ; 3380  cdce35
-        LD      HL,41C1H                ; 3383  21c141
+        LD      HL,V_41C1               ; 3383  21c141
         BIT     0,(HL)                  ; 3386  cb46
         CALL    nz,L3390                ; 3388  c49033
         POP     AF                      ; 338B  f1
         RET     nz                      ; 338C  c0
         JP      WARMSTART               ; 338D  c34802
 L3390:
-        LD      A,(41E3H)               ; 3390  3ae341
+        LD      A,(V_41E3)              ; 3390  3ae341
         AND     7FH                     ; 3393  e67f
         CP      64H                     ; 3395  fe64
         RET     nc                      ; 3397  d0
-        LD      HL,(4088H)              ; 3398  2a8840
+        LD      HL,(ED_RPTR)            ; 3398  2a8840
         PUSH    HL                      ; 339B  e5
         DEC     HL                      ; 339C  2b
         LD      A,(HL)                  ; 339D  7e
@@ -6933,7 +7485,7 @@ L33A3:
         CP      1EH                     ; 33A3  fe1e
         JR      nz,L33A0                ; 33A5  20f9
         POP     HL                      ; 33A7  e1
-        LD      DE,408AH                ; 33A8  118a40
+        LD      DE,ED_BUF               ; 33A8  118a40
         AND     A                       ; 33AB  a7
         SBC     HL,DE                   ; 33AC  ed52
         LD      B,L                     ; 33AE  45
@@ -6955,14 +7507,14 @@ L33BE:
         CALL    OUTCH                   ; 33C7  cdd435
         CALL    CH_SPACE                ; 33CA  cdd235
         CALL    L35DB                   ; 33CD  cddb35
-        LD      HL,41C2H                ; 33D0  21c241
+        LD      HL,V_41C2               ; 33D0  21c241
         SET     0,(HL)                  ; 33D3  cbc6
-        LD      HL,408AH                ; 33D5  218a40
-        LD      DE,4003H                ; 33D8  110340
+        LD      HL,ED_BUF               ; 33D5  218a40
+        LD      DE,V_4003               ; 33D8  110340
         LD      BC,7EH                  ; 33DB  017e00
         LDIR                            ; 33DE  edb0
         CALL    CON_CR                  ; 33E0  cd2f36
-        LD      HL,4003H                ; 33E3  210340
+        LD      HL,V_4003               ; 33E3  210340
         LD      B,7EH                   ; 33E6  067e
 L33E8:
         LD      A,(HL)                  ; 33E8  7e
@@ -6972,11 +7524,11 @@ L33E8:
         CALL    CH_OUT                  ; 33EE  cddb34
         DJNZ    L33E8                   ; 33F1  10f5
 L33F3:
-        LD      HL,41A6H                ; 33F3  21a641
+        LD      HL,V_41A6               ; 33F3  21a641
         CALL    L3402                   ; 33F6  cd0234
-        LD      HL,41A8H                ; 33F9  21a841
+        LD      HL,V_41A8               ; 33F9  21a841
         CALL    L3402                   ; 33FC  cd0234
-        LD      HL,41AAH                ; 33FF  21aa41
+        LD      HL,V_41AA               ; 33FF  21aa41
 L3402:
         CALL    LINE_SET                ; 3402  cd2633
         RET     z                       ; 3405  c8
@@ -7008,29 +7560,44 @@ MSG_NOSRC:
         DB      47H,45H,44H,1EH         ; 3467 GED.
 MSG_RESTART:
         DB      52H,45H,53H,54H,41H,52H,54H,20H ; 346B RESTART
-        DB      42H,41H,53H,49H,43H,1EH,05H ; 3473 BASIC..
+        DB      42H,41H,53H,49H,43H,1EH ; 3473 BASIC.
+D3479:
+        DB      05H                     ; 3479 .
 MSG_BREAK:
-        DB      42H,52H,45H,41H,4BH,09H ; 347A BREAK.
+        DB      42H,52H,45H,41H,4BH     ; 347A BREAK
+D347F:
+        DB      09H                     ; 347F .
 MSG_ATLINE:
         DB      20H,41H,54H,20H,4CH,49H,4EH,45H ; 3480  AT LINE
-        DB      3AH,52H,45H,41H,44H,59H,1EH ; 3488 :READY.
+        DB      3AH                     ; 3488 :
+D3489:
+        DB      52H,45H,41H,44H,59H,1EH ; 3489 READY.
 MSG_ERROR:
         DB      05H,45H,52H,52H,4FH,52H ; 348F .ERROR
 MSG_WARNING:
         DB      07H,57H,41H,52H,4EH,49H,4EH,47H ; 3495 .WARNING
-        DB      45H,4EH,44H,1EH,01H,00H,89H,00H ; 349D END.....
-        DB      0A1H,34H,83H,00H,02H,40H,00H,43H ; 34A5 .4...@.C
-        DB      0B5H,34H,0FFH,0FFH,00H,00H,00H,00H ; 34AD .4......
+D349D:
+        DB      45H,4EH,44H,1EH         ; 349D END.
+D34A1:
+        DB      01H,00H,89H,00H         ; 34A1 ....
+D34A5:
+        DW      D34A1                   ; 34A5  a134
+        DB      83H,00H,02H,40H,00H     ; 34A7 ...@.
+D34AC:
+        DB      43H                     ; 34AC C
+        DW      D34B5                   ; 34AD  b534
+        DB      0FFH,0FFH,00H,00H,00H,00H ; 34AF ......
+D34B5:
         DB      0A7H,0C9H               ; 34B5 ..
 L34B7:
         CALL    L356D                   ; 34B7  cd6d35
         CP      57H                     ; 34BA  fe57
         JR      z,L34D3                 ; 34BC  2815
         CP      42H                     ; 34BE  fe42
-        LD      (41E4H),A               ; 34C0  32e441
+        LD      (V_41E4),A              ; 34C0  32e441
         RET     nz                      ; 34C3  c0
         CALL    CH_NEWLINE              ; 34C4  cdc335
-        LD      HL,3479H                ; 34C7  217934
+        LD      HL,D3479                ; 34C7  217934
         CALL    PRINT_STR               ; 34CA  cde735
         CALL    L257E                   ; 34CD  cd7e25
         JP      WARMSTART               ; 34D0  c34802
@@ -7139,16 +7706,19 @@ L3550:
         POP     HL                      ; 356B  e1
         RET                             ; 356C  c9
 L356D:
-        LD      HL,3764H                ; 356D  216437
+        LD      HL,L3764                ; 356D  216437
 L3570:
         PUSH    IX                      ; 3570  dde5
         PUSH    IY                      ; 3572  fde5
-        LD      DE,357EH                ; 3574  117e35
+        LD      DE,L357E                ; 3574  117e35
         PUSH    DE                      ; 3577  d5
         LD      DE,9                    ; 3578  110900
         ADD     IY,DE                   ; 357B  fd19
         JP      (HL)                    ; 357D  e9
-        DB      0FDH,0E1H,0DDH,0E1H,0C9H ; 357E .....
+L357E:
+        POP     IY                      ; 357E  fde1
+        POP     IX                      ; 3580  dde1
+        RET                             ; 3582  c9
 L3583:
         PUSH    AF                      ; 3583  f5
         SET     0,(IY)                  ; 3584  fdcb00c6
@@ -7188,7 +7758,7 @@ L35BF:
         LD      A,9                     ; 35BF  3e09
         JR      OUTCH                   ; 35C1  1811
 CH_NEWLINE:
-        LD      IY,(41F1H)              ; 35C3  fd2af141
+        LD      IY,(V_41F1)             ; 35C3  fd2af141
         LD      A,(IY+4)                ; 35C7  fd7e04
         CP      (IY+3)                  ; 35CA  fdbe03
         RET     z                       ; 35CD  c8
@@ -7199,7 +7769,7 @@ CH_SPACE:
         LD      A,20H                   ; 35D2  3e20
 ; ---- OUTCH: Zeichen A auf aktuellen Ausgabekanal (41F1H)
 OUTCH:
-        LD      IY,(41F1H)              ; 35D4  fd2af141
+        LD      IY,(V_41F1)             ; 35D4  fd2af141
         JP      CH_OUT                  ; 35D8  c3db34
 L35DB:
         LD      B,1EH                   ; 35DB  061e
@@ -7227,18 +7797,34 @@ X_SKIP:
 L35F5:
         LD      A,20H                   ; 35F5  3e20
 L35F7:
-        LD      IY,(41F3H)              ; 35F7  fd2af341
+        LD      IY,(V_41F3)             ; 35F7  fd2af341
         JP      CH_OUT                  ; 35FB  c3db34
-        DB      46H,23H,7EH,0CDH,0F7H,35H,23H,10H ; 35FE F#~..5#.
-        DB      0F9H,0C9H,06H,1EH,7EH,0CDH,0F7H,35H ; 3606 ....~..5
-        DB      7EH,23H,0B8H,20H,0F7H,0C9H ; 360E ~#. ..
+        LD      B,(HL)                  ; 35FE  46
+        INC     HL                      ; 35FF  23
+L3600:
+        LD      A,(HL)                  ; 3600  7e
+        CALL    L35F7                   ; 3601  cdf735
+        INC     HL                      ; 3604  23
+        DJNZ    L3600                   ; 3605  10f9
+        RET                             ; 3607  c9
+L3608:
+        LD      B,1EH                   ; 3608  061e
+L360A:
+        LD      A,(HL)                  ; 360A  7e
+        CALL    L35F7                   ; 360B  cdf735
+        LD      A,(HL)                  ; 360E  7e
+        INC     HL                      ; 360F  23
+        CP      B                       ; 3610  b8
+        JR      nz,L360A                ; 3611  20f7
+        RET                             ; 3613  c9
 L3614:
         LD      A,1EH                   ; 3614  3e1e
         JP      CH_OUT                  ; 3616  c3db34
 L3619:
         LD      A,20H                   ; 3619  3e20
         JP      CH_OUT                  ; 361B  c3db34
-        DB      46H,23H                 ; 361E F#
+        LD      B,(HL)                  ; 361E  46
+        INC     HL                      ; 361F  23
 L3620:
         LD      A,(HL)                  ; 3620  7e
         CALL    CH_OUT                  ; 3621  cddb34
@@ -7251,35 +7837,35 @@ L3628:
         JR      nz,L3628                ; 362C  20fa
         RET                             ; 362E  c9
 CON_CR:
-        LD      IY,4204H                ; 362F  fd210442
+        LD      IY,V_4204               ; 362F  fd210442
         LD      A,13                    ; 3633  3e0d
         JP      CH_OUT                  ; 3635  c3db34
 L3638:
-        LD      (4083H),A               ; 3638  328340
+        LD      (V_4083),A              ; 3638  328340
         PUSH    HL                      ; 363B  e5
-        LD      HL,(4088H)              ; 363C  2a8840
+        LD      HL,(ED_RPTR)            ; 363C  2a8840
         DEC     HL                      ; 363F  2b
-        LD      (4088H),HL              ; 3640  228840
+        LD      (ED_RPTR),HL            ; 3640  228840
         POP     HL                      ; 3643  e1
         RET                             ; 3644  c9
 L3645:
-        LD      A,(4083H)               ; 3645  3a8340
+        LD      A,(V_4083)              ; 3645  3a8340
         AND     A                       ; 3648  a7
         JR      z,L3652                 ; 3649  2807
         PUSH    AF                      ; 364B  f5
         XOR     A                       ; 364C  af
-        LD      (4083H),A               ; 364D  328340
+        LD      (V_4083),A              ; 364D  328340
         POP     AF                      ; 3650  f1
         RET                             ; 3651  c9
 L3652:
         PUSH    IY                      ; 3652  fde5
-        LD      IY,(41F7H)              ; 3654  fd2af741
-        LD      HL,41C1H                ; 3658  21c141
+        LD      IY,(V_41F7)             ; 3654  fd2af741
+        LD      HL,V_41C1               ; 3658  21c141
         BIT     5,(HL)                  ; 365B  cb6e
         JR      nz,L3667                ; 365D  2008
         BIT     1,(HL)                  ; 365F  cb4e
         JR      nz,L3667                ; 3661  2004
-        LD      IY,(41F5H)              ; 3663  fd2af541
+        LD      IY,(V_41F5)             ; 3663  fd2af541
 L3667:
         CALL    L3550                   ; 3667  cd5035
         POP     IY                      ; 366A  fde1
@@ -7293,11 +7879,31 @@ L3667:
         DB      00H,00H,00H,00H,00H,00H,00H,00H ; 369D ........
         DB      00H,00H,00H,00H,00H,00H,00H,00H ; 36A5 ........
         DB      00H,00H,00H,00H,00H,00H,00H,00H ; 36AD ........
-        DB      00H,0FEH,1EH,20H,07H,3EH,0DH,0CDH ; 36B5 ... .>..
-        DB      0C1H,36H,3EH,0AH,0C5H,0D5H,0E5H,0F5H ; 36BD .6>.....
-        DB      5FH,0EH,05H,0CDH,05H,00H,0F1H,0B7H ; 36C5 _.......
-        DB      18H,17H,3EH,0CH,0FEH,1EH,28H,22H ; 36CD ..>...("
-        DB      0B7H,18H,10H            ; 36D5 ...
+        DB      00H                     ; 36B5 .
+L36B6:
+        CP      1EH                     ; 36B6  fe1e
+        JR      nz,L36C1                ; 36B8  2007
+        LD      A,13                    ; 36BA  3e0d
+        CALL    L36C1                   ; 36BC  cdc136
+        LD      A,10                    ; 36BF  3e0a
+L36C1:
+        PUSH    BC                      ; 36C1  c5
+        PUSH    DE                      ; 36C2  d5
+        PUSH    HL                      ; 36C3  e5
+        PUSH    AF                      ; 36C4  f5
+        LD      E,A                     ; 36C5  5f
+        LD      C,5                     ; 36C6  0e05
+        CALL    BDOS                    ; 36C8  cd0500
+        POP     AF                      ; 36CB  f1
+        OR      A                       ; 36CC  b7
+        JR      L36E6                   ; 36CD  1817
+L36CF:
+        LD      A,12                    ; 36CF  3e0c
+L36D1:
+        CP      1EH                     ; 36D1  fe1e
+        JR      z,L36F7                 ; 36D3  2822
+        OR      A                       ; 36D5  b7
+        JR      CONOUT                  ; 36D6  1810
 L36D8:
         PUSH    BC                      ; 36D8  c5
         PUSH    DE                      ; 36D9  d5
@@ -7308,6 +7914,7 @@ L36DB:
         CALL    BDOS                    ; 36DF  cd0500
         CP      0                       ; 36E2  fe00
         JR      z,L36DB                 ; 36E4  28f5
+L36E6:
         JR      L36F3                   ; 36E6  180b
 
 ;=====================================================================
@@ -7328,8 +7935,11 @@ L36F3:
         POP     DE                      ; 36F4  d1
         POP     BC                      ; 36F5  c1
         RET                             ; 36F6  c9
-        DB      3EH,0DH,0CDH,0E8H,36H,3EH,0AH,18H ; 36F7 >...6>..
-        DB      0E8H                    ; 36FF .
+L36F7:
+        LD      A,13                    ; 36F7  3e0d
+        CALL    CONOUT                  ; 36F9  cde836
+        LD      A,10                    ; 36FC  3e0a
+        JR      CONOUT                  ; 36FE  18e8
 
 ;=====================================================================
 ; DRVTAB: PATCHBARE TREIBERTABELLE
@@ -7339,25 +7949,72 @@ L36F3:
 DRVTAB:
         DB      00H,00H,00H             ; 3700 ...
 DRV_DUMMY:
-        DB      0C9H,44H,0AFH,37H,00H,00H,00H,00H ; 3703 .D.7....
-        DB      00H,00H,42H,0DBH,37H,00H,00H,00H ; 370B ..B.7...
-        DB      00H,00H,00H,42H,0D1H,36H,0FFH,0FFH ; 3713 ...B.6..
-        DB      0CFH,36H,00H,00H,42H,03H,37H,01H ; 371B .6..B.7.
-        DB      00H,00H,00H,00H,00H,44H,03H,37H ; 3723 .....D.7
-        DB      00H,00H,00H,00H,00H,00H,62H,0B6H ; 372B ......b.
-        DB      36H,50H,00H,00H,00H,00H,00H,54H ; 3733 6P.....T
-        DB      7CH,37H,00H,00H,2FH,3AH,49H,3AH ; 373B |7../:I:
-        DB      52H,6CH,37H,0FFH,0FFH,0A5H,39H,0C5H ; 3743 Rl7...9.
-        DB      39H,54H,4BH,3AH,0FFH,0FFH,2FH,3AH ; 374B 9TK:../:
-        DB      49H,3AH,52H,0DFH,39H,0FFH,0FFH,0A5H ; 3753 I:R.9...
-        DB      39H,0C5H,39H            ; 375B 9.9
+        DB      0C9H                    ; 3703 .
+DRV_INIT:
+        DB      44H                     ; 3704 Kanalblock: Flag
+        DW      L37AF                   ; 3705  af37
+        DW      0000H                   ; 3707  0000
+        DW      0000H                   ; 3709  0000
+        DW      0000H                   ; 370B  0000
+        DB      42H                     ; 370D Kanalblock: Flag
+        DW      L37DB                   ; 370E  db37
+        DW      0000H                   ; 3710  0000
+        DW      0000H                   ; 3712  0000
+        DW      0000H                   ; 3714  0000
+        DB      42H                     ; 3716 Kanalblock: Flag
+        DW      L36D1                   ; 3717  d136
+        DW      0FFFFH                  ; 3719  ffff
+        DW      L36CF                   ; 371B  cf36
+        DW      0000H                   ; 371D  0000
+        DB      42H                     ; 371F Kanalblock: Flag
+        DW      DRV_DUMMY               ; 3720  0337
+        DW      0001H                   ; 3722  0100
+        DW      0000H                   ; 3724  0000
+        DW      0000H                   ; 3726  0000
+        DB      44H                     ; 3728 Kanalblock: Flag
+        DW      DRV_DUMMY               ; 3729  0337
+        DW      0000H                   ; 372B  0000
+        DW      0000H                   ; 372D  0000
+        DW      0000H                   ; 372F  0000
+        DB      62H                     ; 3731 Kanalblock: Flag
+        DW      L36B6                   ; 3732  b636
+        DW      0050H                   ; 3734  5000
+        DW      0000H                   ; 3736  0000
+        DW      0000H                   ; 3738  0000
+DEV_MTR:
+        DB      54H                     ; 373A Kanalblock: Flag
+        DW      L377C                   ; 373B  7c37
+        DW      0000H                   ; 373D  0000
+        DW      L3A2F                   ; 373F  2f3a
+        DW      L3A49                   ; 3741  493a
+DEV_MTW:
+        DB      52H                     ; 3743 Kanalblock: Flag
+        DW      L376C                   ; 3744  6c37
+        DW      0FFFFH                  ; 3746  ffff
+        DW      L39A5                   ; 3748  a539
+        DW      L39C5                   ; 374A  c539
+DEV_FDR:
+        DB      54H                     ; 374C Kanalblock: Flag
+        DW      L3A4B                   ; 374D  4b3a
+        DW      0FFFFH                  ; 374F  ffff
+        DW      L3A2F                   ; 3751  2f3a
+        DW      L3A49                   ; 3753  493a
+DEV_FDW:
+        DB      52H                     ; 3755 Kanalblock: Flag
+        DW      L39DF                   ; 3756  df39
+        DW      0FFFFH                  ; 3758  ffff
+        DW      L39A5                   ; 375A  a539
+        DW      L39C5                   ; 375C  c539
+L375E:
         LD      C,0                     ; 375E  0e00
         CALL    BDOS                    ; 3760  cd0500
         RET                             ; 3763  c9
+L3764:
         LD      E,0FFH                  ; 3764  1eff
         LD      C,6                     ; 3766  0e06
         CALL    BDOS                    ; 3768  cd0500
         RET                             ; 376B  c9
+L376C:
         CP      1EH                     ; 376C  fe1e
         JP      nz,L39DF                ; 376E  c2df39
         LD      A,13                    ; 3771  3e0d
@@ -7381,17 +8038,18 @@ L378A:
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 379C ........
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 37A4 ........
         DB      0FFH,0FFH,0FFH          ; 37AC ...
-        LD      HL,(4088H)              ; 37AF  2a8840
+L37AF:
+        LD      HL,(ED_RPTR)            ; 37AF  2a8840
         LD      A,H                     ; 37B2  7c
         OR      L                       ; 37B3  b5
         JR      nz,L37D8                ; 37B4  2022
-        LD      HL,408AH                ; 37B6  218a40
+        LD      HL,ED_BUF               ; 37B6  218a40
         LD      DE,7FH                  ; 37B9  117f00
         CALL    L3802                   ; 37BC  cd0238
         LD      B,64H                   ; 37BF  0664
         RET     c                       ; 37C1  d8
         LD      A,20H                   ; 37C2  3e20
-        LD      HL,4109H                ; 37C4  210941
+        LD      HL,V_4109               ; 37C4  210941
         LD      B,80H                   ; 37C7  0680
 L37C9:
         DEC     HL                      ; 37C9  2b
@@ -7401,20 +8059,21 @@ L37C9:
 L37CF:
         INC     HL                      ; 37CF  23
         LD      (HL),1EH                ; 37D0  361e
-        LD      HL,408AH                ; 37D2  218a40
-        LD      (4088H),HL              ; 37D5  228840
+        LD      HL,ED_BUF               ; 37D2  218a40
+        LD      (ED_RPTR),HL            ; 37D5  228840
 L37D8:
         LD      A,(HL)                  ; 37D8  7e
         AND     A                       ; 37D9  a7
         RET                             ; 37DA  c9
+L37DB:
         CP      1EH                     ; 37DB  fe1e
         RET     z                       ; 37DD  c8
         CP      13                      ; 37DE  fe0d
         JR      nz,L37F9                ; 37E0  2017
         LD      HL,0                    ; 37E2  210000
-        LD      (4088H),HL              ; 37E5  228840
-        LD      HL,408AH                ; 37E8  218a40
-        LD      (4086H),HL              ; 37EB  228640
+        LD      (ED_RPTR),HL            ; 37E5  228840
+        LD      HL,ED_BUF               ; 37E8  218a40
+        LD      (ED_WPTR),HL            ; 37EB  228640
         LD      B,7FH                   ; 37EE  067f
         LD      C,20H                   ; 37F0  0e20
 L37F2:
@@ -7424,13 +8083,13 @@ L37F2:
         LD      (HL),1EH                ; 37F6  361e
         RET                             ; 37F8  c9
 L37F9:
-        LD      HL,(4086H)              ; 37F9  2a8640
+        LD      HL,(ED_WPTR)            ; 37F9  2a8640
         LD      (HL),A                  ; 37FC  77
         INC     HL                      ; 37FD  23
-        LD      (4086H),HL              ; 37FE  228640
+        LD      (ED_WPTR),HL            ; 37FE  228640
         RET                             ; 3801  c9
 L3802:
-        LD      BC,(4086H)              ; 3802  ed4b8640
+        LD      BC,(ED_WPTR)            ; 3802  ed4b8640
         PUSH    AF                      ; 3806  f5
         PUSH    BC                      ; 3807  c5
         PUSH    DE                      ; 3808  d5
@@ -7743,6 +8402,7 @@ L39A0:
         DJNZ    L39A0                   ; 39A1  10fd
         POP     BC                      ; 39A3  c1
         RET                             ; 39A4  c9
+L39A5:
         CALL    L3960                   ; 39A5  cd6039
         CALL    L399A                   ; 39A8  cd9a39
         PUSH    IY                      ; 39AB  fde5
@@ -7761,6 +8421,7 @@ L39C1:
         LD      B,6FH                   ; 39C1  066f
         SCF                             ; 39C3  37
         RET                             ; 39C4  c9
+L39C5:
         XOR     A                       ; 39C5  af
         CP      (IY+6)                  ; 39C6  fdbe06
         CALL    nz,L39F7                ; 39C9  c4f739
@@ -7818,6 +8479,7 @@ L3A20:
 L3A2D:
         XOR     A                       ; 3A2D  af
         RET                             ; 3A2E  c9
+L3A2F:
         CALL    L3960                   ; 3A2F  cd6039
         CALL    L399A                   ; 3A32  cd9a39
         PUSH    IY                      ; 3A35  fde5
@@ -7834,6 +8496,7 @@ L3A2D:
 L3A47:
         XOR     A                       ; 3A47  af
         RET                             ; 3A48  c9
+L3A49:
         XOR     A                       ; 3A49  af
         RET                             ; 3A4A  c9
 L3A4B:
@@ -8519,6 +9182,14 @@ L3E18:
         XOR     A                       ; 3E26  af
         RET                             ; 3E27  c9
 
+; Ende des Programms.
+        IF      $>RAM_BASE
+        ERROR   "Code reicht in den Arbeitsspeicher"
+        ENDIF
+; Fuellbytes bis RAM_BASE, nur damit die Datei bei 0100H dem
+; Original (0100H-3FFFH) entspricht.
+        IF      CODE_ORG=0100H
+
 ;=====================================================================
 ; ENDE DES CODES
 ; Ab 4000H folgt das mitgespeicherte Abbild des Arbeitsspeichers
@@ -8583,561 +9254,118 @@ L3E18:
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3FE8 ........
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3FF0 ........
         DB      0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH,0FFH ; 3FF8 ........
-        DB      00H,00H,00H,1EH,59H,45H,00H,00H ; 4000 ....YE..
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4008 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4010 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4018 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4020 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4028 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4030 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4038 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4040 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4048 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4050 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4058 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4060 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4068 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4070 ########
-        DB      23H,23H,23H,1EH,00H,00H,00H,00H ; 4078 ###.....
-        DB      00H,00H,00H,00H,8AH,40H,8AH,40H ; 4080 .....@.@
-        DB      8EH,40H,42H,59H,45H,1EH,1EH,20H ; 4088 .@BYE..
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 4090
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 4098
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40A0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40A8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40B0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40B8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40C0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40C8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40D0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40D8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40E0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40E8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40F0
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 40F8
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 4100
-        DB      20H,1EH,00H,01H,90H,0F5H,4DH,9EH ; 4108  .....M.
-        DB      0C0H,43H,00H,73H,44H,0FFH,94H,0F3H ; 4110 .C.sD...
-        DB      41H,0DH,42H,0FFH,46H,00H,1FH,46H ; 4118 A.B.F..F
-        DB      62H,64H,0EFH,4FH,6EH,10H,02H,1EH ; 4120 bd.On...
-        DB      2AH,46H,04H,95H,4BH,62H,64H,0F5H ; 4128 *F..Kbd.
-        DB      4FH,6EH,10H,09H,1EH,95H,4BH,62H ; 4130 On....Kb
-        DB      6EH,10H,00H,1EH,0C6H,4DH,62H,6EH ; 4138 n....Mbn
-        DB      10H,00H,1EH,0CCH,4DH,62H,68H,8EH ; 4140 ....Mbh.
-        DB      46H,00H,1FH,46H,04H,1FH,46H,20H ; 4148 F..F..F
-        DB      58H,4EH,60H,6CH,4EH,0E4H,4DH,88H ; 4150 XN`lN.M.
-        DB      72H,4EH,1EH,0BBH,49H,00H,47H,46H ; 4158 rN..I.GF
-        DB      00H,1FH,46H,04H,1FH,46H,20H,58H ; 4160 ..F..F X
-        DB      4EH,60H,0EAH,4DH,0E4H,4DH,88H,7AH ; 4168 N`.M.M.z
-        DB      4EH,00H,00H,00H,00H,00H,00H,00H ; 4170 N.......
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4178 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4180 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4188 ........
-        DB      0BH,41H,00H,00H,00H,00H,00H,00H ; 4190 .A......
-        DB      00H,00H,32H,4DH,7CH,50H,00H,00H ; 4198 ..2M|P..
-        DB      00H,00H,00H,00H,5DH,46H,00H,00H ; 41A0 ....]F..
-        DB      0DEH,4FH,0F3H,48H,0EBH,4BH,0BAH,43H ; 41A8 .O.H.K.C
-        DB      9CH,44H,0CAH,45H,01H,14H,14H,03H ; 41B0 .D.E....
-        DB      0C5H,00H,00H,00H,00H,00H,00H,00H ; 41B8 ........
-        DB      00H,00H,00H,0ADH,00H,0A4H,41H,22H ; 41C0 ......A"
-        DB      0B2H,00H,00H,20H,20H,20H,35H,30H ; 41C8 ...   50
-        DB      0FFH,00H,00H,00H,00H,00H,00H,00H ; 41D0 ........
-        DB      00H,00H,8AH,41H,12H,00H,00H,00H ; 41D8 ...A....
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 41E0 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 41E8 ........
-        DB      00H,0DH,42H,0DH,42H,0FBH,41H,0FBH ; 41F0 ..B.B.A.
-        DB      41H,00H,00H,45H,0AFH,37H,00H,00H ; 41F8 A..E.7..
-        DB      00H,00H,00H,00H,43H,0DBH,37H,0FFH ; 4200 ....C.7.
-        DB      00H,00H,00H,00H,00H,43H,0D1H,36H ; 4208 .....C.6
-        DB      0FEH,0FFH,0CFH,36H,00H,00H,42H,03H ; 4210 ...6..B.
-        DB      37H,01H,00H,00H,00H,00H,00H,44H ; 4218 7......D
-        DB      03H,37H,00H,00H,00H,00H,00H,00H ; 4220 .7......
-        DB      62H,0B6H,36H,50H,00H,00H,00H,00H ; 4228 b.6P....
-        DB      00H,54H,00H,00H,00H,00H,00H,00H ; 4230 .T......
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4238 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4240 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4248 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4250 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4258 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4260 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4268 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4270 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4278 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4280 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4288 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4290 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4298 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42A0 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42A8 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42B0 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42B8 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42C0 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42C8 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42D0 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42D8 ........
-        DB      00H                     ; 42E0 .
-FAC_TYPE:
-        DB      01H                     ; 42E1 .
-FAC:
-        DB      02H,01H,00H             ; 42E2 ...
-FAC_SIGN_MSB:
-        DB      00H                     ; 42E5 .
-FAC_EXP:
-        DB      00H                     ; 42E6 .
-ARG:
-        DB      00H,00H,00H             ; 42E7 ...
-ARG_SIGN_MSB:
-        DB      00H                     ; 42EA .
-ARG_EXP:
-        DB      00H,00H,00H,00H,00H,00H,01H,00H ; 42EB ........
-        DB      00H,00H,0AH,05H,40H,00H,00H,00H ; 42F3 ....@...
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 42FB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4303 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 430B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4313 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 431B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4323 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 432B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4333 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 433B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4343 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 434B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 4353 ........
-        DB      00H,00H,3BH,33H,05H,00H,3BH,33H ; 435B ..;3..;3
-        DB      06H,00H,3BH,33H,04H,00H,54H,5DH ; 4363 ..;3..T]
-        DB      29H,33H,4EH,33H,06H,00H,44H,00H ; 436B )3N3..D.
-        DB      44H,00H,80H,0D2H,0F2H,36H,00H,08H ; 4373 D....6..
-        DB      8DH,40H,00H,00H,77H,01H,2FH,39H ; 437B .@..w./9
-        DB      8AH,40H,7FH,00H,8AH,40H,44H,00H ; 4383 .@...@D.
-        DB      0BFH,37H,0F2H,36H,0F2H,36H,4AH,0AH ; 438B .7.6.6J.
-        DB      0D1H,36H,09H,00H,38H,1EH,7EH,35H ; 4393 .6..8.~5
-        DB      0DH,42H,0CH,41H,35H,35H,1AH,1EH ; 439B .B.A55..
-        DB      38H,1EH,48H,00H,8DH,40H,63H,37H ; 43A3 8.H..@c7
-        DB      00H,02H,06H,4CH,4FH,54H,54H,4FH ; 43AB ...LOTTO
-        DB      46H,8AH,44H,8BH,00H,0ADH,43H,0C0H ; 43B3 F.D...C.
-        DB      43H,89H,00H,61H,46H,7EH,44H,89H ; 43BB C..aF~D.
-        DB      00H,65H,46H,00H,00H,0ADH,00H,56H ; 43C3 .eF....V
-        DB      44H,00H,00H,00H,00H,4CH,4FH,54H ; 43CB D....LOT
-        DB      54H,4FH,46H,20H,20H,47H,42H,41H ; 43D3 TOF  GBA
-        DB      00H,00H,80H,15H,02H,00H,03H,00H ; 43DB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 43E3 ........
-        DB      00H,00H,00H,00H,15H,00H,00H,00H ; 43EB ........
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 43F3 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 43FB ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4403 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 440B ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4413 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 441B ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4423 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 442B ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4433 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 443B ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4443 ########
-        DB      23H,23H,23H,23H,23H,23H,1EH,45H ; 444B ######.E
-        DB      4EH,44H,1EH,35H,30H,20H,23H,23H ; 4453 ND.50 ##
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 445B ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 4463 ########
-        DB      23H,23H,23H,23H,23H,23H,23H,23H ; 446B ########
-        DB      00H,00H,22H,0B2H,00H,00H,00H,00H ; 4473 ..".....
-        DB      0C0H,47H,09H,0A9H,44H,8AH,00H,79H ; 447B .G..D..y
-        DB      44H,8CH,4CH,63H,80H,00H,00H,0FDH ; 4483 D.Lc....
-        DB      46H,8BH,00H,00H,00H,0BH,1EH,7EH ; 448B F......~
-        DB      44H,20H,73H,44H,60H,8AH,44H,84H ; 4493 D sD`.D.
-        DB      44H,0C2H,45H,01H,00H,00H,00H,90H ; 449B D.E.....
-        DB      44H,00H,00H,00H,50H,04H,0B4H,44H ; 44A3 D...P..D
-        DB      8AH,00H,0A4H,44H,00H,00H,00H,4AH ; 44AB ...D...J
-        DB      06H,0BFH,44H,8AH,00H,0AFH,44H,00H ; 44B3 ..D...D.
-        DB      00H,00H,58H,04H,0CAH,44H,8AH,00H ; 44BB ..X..D..
-        DB      0BAH,44H,00H,00H,00H,40H,02H,0D5H ; 44C3 .D...@..
-        DB      44H,8AH,00H,0C5H,44H,00H,00H,00H ; 44CB D...D...
-        DB      4CH,05H,0E0H,44H,8AH,00H,0D0H,44H ; 44D3 L..D...D
-        DB      00H,00H,00H,6CH,05H,0EBH,44H,8AH ; 44DB ...l..D.
-        DB      00H,0DBH,44H,00H,00H,00H,68H,05H ; 44E3 ..D...h.
-        DB      0F6H,44H,8AH,00H,0E6H,44H,00H,00H ; 44EB .D...D..
-        DB      00H,48H,06H,01H,45H,8AH,00H,0F1H ; 44F3 .H..E...
-        DB      44H,00H,00H,00H,76H,06H,0CH,45H ; 44FB D...v..E
-        DB      8AH,00H,0FCH,44H,00H,00H,00H,64H ; 4503 ...D...d
-        DB      06H,17H,45H,8AH,00H,07H,45H,00H ; 450B ..E...E.
-        DB      00H,00H,4EH,06H,22H,45H,8AH,00H ; 4513 ..N."E..
-        DB      12H,45H,00H,00H,00H,6CH,06H,2DH ; 451B .E...l.-
-        DB      45H,8AH,00H,1DH,45H,00H,00H,00H ; 4523 E...E...
-        DB      68H,06H,38H,45H,8AH,00H,28H,45H ; 452B h.8E..(E
-        DB      00H,00H,00H,72H,06H,43H,45H,8AH ; 4533 ...r.CE.
-        DB      00H,33H,45H,00H,00H,00H,56H,06H ; 453B .3E...V.
-        DB      4EH,45H,8AH,00H,3EH,45H,00H,00H ; 4543 NE..>E..
-        DB      00H,52H,06H,59H,45H,8AH,00H,49H ; 454B .R.YE..I
-        DB      45H,00H,00H,00H,5CH,06H,64H,45H ; 4553 E.....dE
-        DB      8AH,00H,54H,45H,00H,00H,00H,70H ; 455B ..TE...p
-        DB      04H,6FH,45H,8AH,00H,5FH,45H,00H ; 4563 .oE.._E.
-        DB      00H,00H,50H,06H,7AH,45H,8AH,00H ; 456B ..P.zE..
-        DB      6AH,45H,00H,00H,00H,46H,06H,85H ; 4573 jE...F..
-        DB      45H,8AH,00H,75H,45H,00H,00H,00H ; 457B E..uE...
-        DB      60H,06H,90H,45H,8AH,00H,80H,45H ; 4583 `..E...E
-        DB      00H,00H,00H,5AH,06H,9BH,45H,8AH ; 458B ...Z..E.
-        DB      00H,8BH,45H,00H,00H,00H,6EH,06H ; 4593 ..E...n.
-        DB      0A6H,45H,8AH,00H,96H,45H,00H,00H ; 459B .E...E..
-        DB      00H,44H,05H,0B1H,45H,8AH,00H,0A1H ; 45A3 .D..E...
-        DB      45H,00H,00H,00H,62H,06H,0BCH,45H ; 45AB E...b..E
-        DB      8AH,00H,0ACH,45H,00H,00H,00H,4CH ; 45B3 ...E...L
-        DB      06H,2AH,46H,8AH,00H,0B7H,45H,3FH ; 45BB .*F...E?
-        DB      46H,02H,00H,00H,00H,00H,00H,00H ; 45C3 F.......
-        DB      00H,02H,00H,28H,0A9H,44H,0B4H,44H ; 45CB ...(.D.D
-        DB      0BFH,44H,0CAH,44H,0D5H,44H,0E0H,44H ; 45D3 .D.D.D.D
-        DB      0EBH,44H,0E0H,44H,0CAH,44H,0F6H,44H ; 45DB .D.D.D.D
-        DB      01H,45H,0CAH,44H,0CH,45H,17H,45H ; 45E3 .E.D.E.E
-        DB      22H,45H,17H,45H,2DH,45H,0CAH,44H ; 45EB "E.E-E.D
-        DB      38H,45H,17H,45H,43H,45H,4EH,45H ; 45F3 8E.ECENE
-        DB      17H,45H,59H,45H,64H,45H,0CAH,44H ; 45FB .EYEdE.D
-        DB      6FH,45H,2DH,45H,7AH,45H,85H,45H ; 4603 oE-EzE.E
-        DB      90H,45H,6FH,45H,9BH,45H,2DH,45H ; 460B .EoE.E-E
-        DB      22H,45H,0A6H,45H,0B1H,45H,0BCH,45H ; 4613 "E.E.E.E
-        DB      17H,45H,2DH,45H,0C6H,4DH,22H,81H ; 461B .E-E.M".
-        DB      00H,00H,00H,00H,00H,40H,01H,6EH ; 4623 .....@.n
-        DB      46H,8AH,00H,25H,46H,0EH,80H,1FH ; 462B F..%F...
-        DB      46H,0AH,00H,44H,0BFH,1EH,2AH,46H ; 4633 F..D..*F
-        DB      0FFH,1EH,6FH,45H,0ACH,46H,03H,00H ; 463B ..oE.F..
-        DB      00H,00H,30H,46H,0BBH,49H,22H,80H ; 4643 ..0F.I".
-        DB      00H,00H,01H,20H,00H,00H,01H,8EH ; 464B ... ....
-        DB      02H,00H,01H,5AH,00H,2AH,03H,20H ; 4653 ...Z.*.
-        DB      20H,3DH,0C6H,43H,04H,00H,00H,01H ; 465B  =.C....
-        DB      30H,30H,02H,01H,30H,32H,00H,00H ; 4663 00..02..
-        DB      00H,7CH,05H,79H,46H,8AH,00H,69H ; 466B .|.yF..i
-        DB      46H,00H,00H,00H,78H,05H,0E1H,47H ; 4673 F...x..G
-        DB      8AH,00H,74H,46H,2CH,96H,47H,46H ; 467B ..tF,.GF
-        DB      1EH,1FH,46H,0EH,6EH,46H,3AH,0EH ; 4683 ..F.nF:.
-        DB      1FH,46H,0EH,47H,46H,0CH,73H,44H ; 468B .F.GF.sD
-        DB      32H,20H,73H,44H,1EH,47H,46H,0CH ; 4693 2 sD.GF.
-        DB      79H,46H,20H,47H,46H,5EH,84H,44H ; 469B yF GF^.D
-        DB      1EH,47H,46H,56H,60H,0A5H,34H,84H ; 46A3 .GFV`.4.
-        DB      44H,0BAH,46H,04H,00H,00H,00H,7FH ; 46AB D.F.....
-        DB      46H,05H,82H,1FH,46H,00H,00H,0C2H ; 46B3 F...F...
-        DB      46H,05H,00H,00H,00H,0B4H,46H,0CAH ; 46BB F.....F.
-        DB      46H,06H,00H,00H,00H,00H,00H,0D2H ; 46C3 F.......
-        DB      46H,07H,00H,00H,00H,00H,00H,0DAH ; 46CB F.......
-        DB      46H,08H,00H,00H,00H,00H,00H,10H ; 46D3 F.......
-        DB      47H,09H,00H,00H,00H,00H,00H,58H ; 46DB G......X
-        DB      4EH,0A3H,80H,00H,00H,14H,55H,4EH ; 46E3 N.....UN
-        DB      47H,55H,45H,4CH,54H,49H,47H,45H ; 46EB GUELTIGE
-        DB      20H,45H,49H,4EH,47H,41H,42H,45H ; 46F3  EINGABE
-        DB      20H,21H,67H,47H,8BH,00H,0E8H,46H ; 46FB  !gG...F
-        DB      0CH,68H,68H,94H,0F7H,41H,0FBH,41H ; 4703 .hh..A.A
-        DB      60H,0FDH,46H,0E2H,46H,72H,47H,0AH ; 470B `.F.FrG.
-        DB      00H,00H,00H,03H,47H,4EH,57H,41H ; 4713 ....GNWA
-        DB      48H,52H,53H,43H,48H,45H,49H,4EH ; 471B HRSCHEIN
-        DB      4CH,49H,43H,48H,4BH,45H,49H,54H ; 4723 LICHKEIT
-        DB      53H,42H,45H,52H,45H,43H,48H,4EH ; 472B SBERECHN
-        DB      55H,4EH,47H,45H,4EH,20H,5AH,55H ; 4733 UNGEN ZU
-        DB      52H,20H,4CH,4FH,54H,54H,4FH,2DH ; 473B R LOTTO-
-        DB      53H,50H,49H,45H,4CH,41H,52H,54H ; 4743 SPIELART
-        DB      20H,41H,20H,41H,55H,53H,20H,42H ; 474B  A AUS B
-        DB      20H,28H,46H,45H,53H,54H,4BH,4FH ; 4753  (FESTKO
-        DB      4DH,4DH,41H,2DH,41H,55H,53H,47H ; 475B MMA-AUSG
-        DB      41H,42H,45H,29H,0C9H,47H,8BH,00H ; 4763 ABE).G..
-        DB      18H,47H,04H,64H,67H,47H,68H,0D4H ; 476B .G.dgGh.
-        DB      47H,0BH,00H,00H,00H,6DH,47H,4EH ; 4773 G....mGN
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 477B ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 4783 ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 478B ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 4793 ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 479B ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 47A3 ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 47AB ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 47B3 ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,7EH,7EH ; 47BB ~~~~~~~~
-        DB      7EH,7EH,7EH,7EH,7EH,7EH,4EH,48H ; 47C3 ~~~~~~NH
-        DB      8BH,00H,7AH,47H,04H,64H,0C9H,47H ; 47CB ..zG.d.G
-        DB      68H,0F6H,47H,0CH,00H,00H,00H,0CFH ; 47D3 h.G.....
-        DB      47H,00H,48H,41H,4DH,14H,74H,49H ; 47DB G.HAM.tI
-        DB      8AH,00H,0DCH,47H,0EH,64H,84H,44H ; 47E3 ...G.d.D
-        DB      68H,68H,1EH,73H,44H,00H,0E1H,47H ; 47EB hh.sD..G
-        DB      20H,73H,44H,59H,48H,0DH,00H,00H ; 47F3  sDYH...
-        DB      00H,0E7H,47H,4FH,45H,53H,20H,57H ; 47FB ..GOES W
-        DB      49H,52H,44H,20H,44H,49H,45H,20H ; 4803 IRD DIE
-        DB      57H,41H,48H,52H,53H,43H,48H,45H ; 480B WAHRSCHE
-        DB      49H,4EH,4CH,49H,43H,48H,4BH,45H ; 4813 INLICHKE
-        DB      49H,54H,2CH,20H,44H,49H,45H,20H ; 481B IT, DIE
-        DB      28H,41H,55H,46H,20H,44H,45H,4EH ; 4823 (AUF DEN
-        DB      20H,48H,41H,55H,50H,54H,47H,45H ; 482B  HAUPTGE
-        DB      57H,49H,4EH,4EH,29H,20H,4EH,4FH ; 4833 WINN) NO
-        DB      52H,4DH,49H,45H,52H,54H,45H,20H ; 483B RMIERTE
-        DB      57H,41H,48H,52H,53H,43H,48H,45H ; 4843 WAHRSCHE
-        DB      49H,4EH,2DH,0B1H,48H,8BH,00H,0FEH ; 484B IN-.H...
-        DB      47H,04H,64H,4EH,48H,68H,0BCH,48H ; 4853 G.dNHh.H
-        DB      0EH,00H,00H,00H,54H,48H,4FH,4CH ; 485B ....THOL
-        DB      49H,43H,48H,4BH,45H,49H,54H,20H ; 4863 ICHKEIT
-        DB      53H,4FH,57H,49H,45H,20H,42H,45H ; 486B SOWIE BE
-        DB      49H,20H,57H,41H,45H,48H,4CH,42H ; 4873 I WAEHLB
-        DB      41H,52H,45H,52H,20H,54H,49H,50H ; 487B ARER TIP
-        DB      41H,4EH,5AH,41H,48H,4CH,20H,44H ; 4883 ANZAHL D
-        DB      49H,45H,20H,57H,41H,48H,52H,53H ; 488B IE WAHRS
-        DB      43H,48H,45H,49H,4EH,4CH,49H,43H ; 4893 CHEINLIC
-        DB      48H,53H,54H,45H,20H,41H,4EH,5AH ; 489B HSTE ANZ
-        DB      41H,48H,4CH,20H,46H,55H,45H,52H ; 48A3 AHL FUER
-        DB      20H,4AH,45H,44H,45H,4EH,0DFH,48H ; 48AB  JEDEN.H
-        DB      8BH,00H,61H,48H,04H,64H,0B1H,48H ; 48B3 ..aH.d.H
-        DB      68H,0EBH,48H,0FH,00H,00H,00H,0B7H ; 48BB h.H.....
-        DB      48H,1AH,4DH,4FH,45H,47H,4CH,49H ; 48C3 H.MOEGLI
-        DB      43H,48H,45H,4EH,20H,52H,41H,4EH ; 48CB CHEN RAN
-        DB      47H,20H,42H,45H,52H,45H,43H,48H ; 48D3 G BERECH
-        DB      4EH,45H,54H,2EH,0BH,49H,8BH,00H ; 48DB NET..I..
-        DB      0C4H,48H,05H,64H,0DFH,48H,68H,68H ; 48E3 .H.d.Hhh
-        DB      20H,49H,10H,00H,00H,00H,0E5H,48H ; 48EB  I.....H
-        DB      9DH,49H,0A4H,45H,11H,00H,00H,00H ; 48F3 .I.E....
-        DB      0FH,45H,49H,4EH,47H,41H,42H,45H ; 48FB .EINGABE
-        DB      20H,56H,4FH,4EH,20H,41H,3AH,20H ; 4903  VON A:
-        DB      0B5H,49H,8BH,00H,0FBH,48H,0EH,64H ; 490B .I...H.d
-        DB      0BH,49H,76H,47H,46H,6EH,03H,00H ; 4913 .IvGFn..
-        DB      1EH,47H,46H,62H,68H,44H,49H,11H ; 491B .GFbhDI.
-        DB      00H,00H,00H,11H,49H,00H,00H,12H ; 4923 ....I...
-        DB      00H,0A4H,45H,00H,00H,13H,8AH,05H ; 492B ..E.....
-        DB      00H,1EH,47H,46H,32H,00H,47H,46H ; 4933 ..GF2.GF
-        DB      0FFH,64H,0E2H,46H,68H,86H,28H,49H ; 493B .d.Fh.(I
-        DB      0FFH,67H,49H,12H,00H,00H,00H,30H ; 4943 .gI....0
-        DB      49H,28H,49H,13H,00H,0A4H,45H,00H ; 494B I(I...E.
-        DB      00H,12H,8AH,04H,00H,1EH,2AH,46H ; 4953 ......*F
-        DB      00H,47H,46H,0FFH,64H,0E2H,46H,68H ; 495B .GF.d.Fh
-        DB      86H,4CH,49H,0FFH,95H,49H,13H,00H ; 4963 .LI..I..
-        DB      00H,00H,54H,49H,00H,00H,00H,63H ; 496B ..TI...c
-        DB      07H,80H,4CH,8AH,00H,6FH,49H,4CH ; 4973 ..L..oIL
-        DB      49H,14H,00H,0A4H,45H,00H,00H,12H ; 497B I...E...
-        DB      8AH,01H,00H,1EH,74H,49H,00H,47H ; 4983 ....tI.G
-        DB      46H,0FFH,64H,0E2H,46H,68H,86H,7AH ; 498B F.d.Fh.z
-        DB      49H,0FFH,0D0H,49H,14H,00H,00H,00H ; 4993 I..I....
-        DB      82H,49H,65H,4AH,0A4H,49H,15H,00H ; 499B .IeJ.I..
-        DB      00H,00H,0FH,45H,49H,4EH,47H,41H ; 49A3 ...EINGA
-        DB      42H,45H,20H,56H,4FH,4EH,20H,42H ; 49AB BE VON B
-        DB      3AH,20H,9AH,4AH,8BH,00H,0A5H,49H ; 49B3 : .J...I
-        DB      84H,44H,42H,80H,00H,00H,0EH,64H ; 49BB .DB....d
-        DB      0B5H,49H,76H,0BBH,49H,6EH,03H,00H ; 49C3 .Iv.In..
-        DB      1EH,0BBH,49H,62H,68H,0F4H,49H,15H ; 49CB ..Ibh.I.
-        DB      00H,00H,00H,0C1H,49H,7AH,49H,16H ; 49D3 ....IzI.
-        DB      00H,0A4H,49H,00H,00H,13H,8AH,05H ; 49DB ..I.....
-        DB      00H,1EH,0BBH,49H,32H,00H,0BBH,49H ; 49E3 ...I2..I
-        DB      0FFH,64H,0E2H,46H,68H,86H,0D8H,49H ; 49EB .d.Fh..I
-        DB      0FFH,17H,4AH,16H,00H,00H,00H,0E0H ; 49F3 ..J.....
-        DB      49H,0D8H,49H,17H,00H,0A4H,49H,00H ; 49FB I.I...I.
-        DB      00H,12H,8AH,04H,00H,1EH,2AH,46H ; 4A03 ......*F
-        DB      00H,0BBH,49H,0FFH,64H,0E2H,46H,68H ; 4A0B ..I.d.Fh
-        DB      86H,0FCH,49H,0FFH,3AH,4AH,17H,00H ; 4A13 ..I.:J..
-        DB      00H,00H,04H,4AH,0FCH,49H,18H,00H ; 4A1B ...J.I..
-        DB      0A4H,49H,00H,00H,12H,8AH,01H,00H ; 4A23 .I......
-        DB      1EH,74H,49H,00H,0BBH,49H,0FFH,64H ; 4A2B .tI..I.d
-        DB      0E2H,46H,68H,86H,1FH,4AH,0FFH,5DH ; 4A33 .Fh..J.]
-        DB      4AH,18H,00H,00H,00H,27H,4AH,1FH ; 4A3B J....'J.
-        DB      4AH,19H,00H,0A4H,49H,00H,00H,12H ; 4A43 J...I...
-        DB      8AH,06H,00H,1EH,47H,46H,00H,0BBH ; 4A4B ....GF..
-        DB      49H,0FFH,64H,0E2H,46H,68H,86H,42H ; 4A53 I.d.Fh.B
-        DB      4AH,0FFH,0B5H,4AH,19H,00H,00H,00H ; 4A5B J..J....
-        DB      4AH,4AH,25H,4DH,0A4H,4DH,1AH,00H ; 4A63 JJ%M.M..
-        DB      00H,00H,2CH,41H,4EH,5AH,41H,48H ; 4A6B ..,ANZAH
-        DB      4CH,20H,44H,45H,52H,20H,41H,4EH ; 4A73 L DER AN
-        DB      20H,44H,45H,52H,20H,5AH,49H,45H ; 4A7B  DER ZIE
-        DB      48H,55H,4EH,47H,20H,42H,45H,54H ; 4A83 HUNG BET
-        DB      45H,49H,4CH,49H,47H,54H,45H,4EH ; 4A8B EILIGTEN
-        DB      20H,54H,49H,50H,53H,3AH,20H,0EBH ; 4A93  TIPS: .
-        DB      4AH,8BH,00H,6DH,4AH,95H,4BH,82H ; 4A9B J..mJ.K.
-        DB      82H,00H,00H,0EH,64H,9AH,4AH,76H ; 4AA3 ....d.Jv
-        DB      0A0H,4AH,6EH,10H,00H,1EH,0A0H,4AH ; 4AAB .Jn....J
-        DB      62H,68H,0D9H,4AH,1AH,00H,00H,00H ; 4AB3 bh.J....
-        DB      0A6H,4AH,42H,4AH,1BH,00H,0A4H,4DH ; 4ABB .JBJ...M
-        DB      00H,00H,13H,8AH,05H,00H,1EH,0A0H ; 4AC3 ........
-        DB      4AH,32H,00H,0A0H,4AH,0FFH,64H,0E2H ; 4ACB J2..J.d.
-        DB      46H,68H,86H,0BDH,4AH,0FFH,31H,4BH ; 4AD3 Fh..J.1K
-        DB      1BH,00H,00H,00H,0C5H,4AH,09H,53H ; 4ADB .....J.S
-        DB      50H,49H,45H,4CH,41H,52H,54H,3AH ; 4AE3 PIELART:
-        DB      0F6H,4AH,8BH,00H,0E1H,4AH,04H,20H ; 4AEB .J...J.
-        DB      41H,55H,53H,09H,4BH,8BH,00H,0F1H ; 4AF3 AUS.K...
-        DB      4AH,0CH,20H,20H,54H,49H,50H,41H ; 4AFB J.  TIPA
-        DB      4EH,5AH,41H,48H,4CH,3AH,89H,4BH ; 4B03 NZAHL:.K
-        DB      8BH,00H,0FCH,4AH,21H,68H,68H,64H ; 4B0B ...J!hhd
-        DB      0EBH,4AH,6EH,03H,00H,1EH,47H,46H ; 4B13 .Jn...GF
-        DB      62H,64H,0F6H,4AH,6EH,03H,00H,1EH ; 4B1B bd.Jn...
-        DB      0BBH,49H,62H,64H,09H,4BH,6EH,10H ; 4B23 .Ibd.Kn.
-        DB      00H,1EH,0A0H,4AH,62H,68H,0ACH,4BH ; 4B2B ...Jbh.K
-        DB      1CH,00H,00H,00H,0FH,4BH,4FH,3DH ; 4B33 .....KO=
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B3B ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B43 ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B4B ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B53 ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B5B ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B63 ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B6B ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B73 ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,3DH,3DH ; 4B7B ========
-        DB      3DH,3DH,3DH,3DH,3DH,3DH,66H,4CH ; 4B83 ======fL
-        DB      8BH,00H,39H,4BH,0D2H,4DH,22H,44H ; 4B8B ..9K.M"D
-        DB      00H,00H,0E4H,4DH,0E2H,82H,00H,00H ; 4B93 ...M....
-        DB      10H,64H,89H,4BH,68H,1EH,47H,46H ; 4B9B .d.Kh.GF
-        DB      20H,8FH,4BH,1EH,2AH,46H,20H,95H ; 4BA3  .K.*F .
-        DB      4BH,0CCH,4BH,1DH,00H,00H,00H,9BH ; 4BAB K.K.....
-        DB      4BH,17H,8AH,01H,00H,1EH,0BBH,49H ; 4BB3 K......I
-        DB      00H,47H,46H,00H,47H,46H,0FFH,1EH ; 4BBB .GF.GF..
-        DB      0BBH,49H,00H,47H,46H,20H,47H,46H ; 4BC3 .I.GF GF
-        DB      0FFH,0E3H,4BH,1EH,00H,00H,00H,0B4H ; 4BCB ..K.....
-        DB      4BH,0EH,80H,1FH,46H,0AH,00H,49H ; 4BD3 K...F..I
-        DB      00H,1EH,2AH,46H,0FFH,1EH,47H,46H ; 4BDB ..*F..GF
-        DB      0AH,4CH,1FH,00H,00H,00H,0D4H,4BH ; 4BE3 .L.....K
-        DB      5EH,4EH,8CH,00H,00H,00H,18H,1EH ; 4BEB ^N......
-        DB      95H,4BH,0EH,1FH,46H,20H,0EBH,4BH ; 4BF3 .K..F .K
-        DB      1EH,0BBH,49H,0CH,2AH,46H,00H,1FH ; 4BFB ..I.*F..
-        DB      46H,06H,0EBH,4BH,20H,95H,4BH,18H ; 4C03 F..K .K.
-        DB      4CH,20H,00H,00H,00H,0F1H,4BH,05H ; 4C0B L ....K.
-        DB      82H,1FH,46H,00H,00H,73H,4CH,21H ; 4C13 ..F..sL!
-        DB      00H,00H,00H,12H,4CH,45H,54H,41H ; 4C1B ....LETA
-        DB      42H,45H,4CH,4CH,45H,20H,31H,20H ; 4C23 BELLE 1
-        DB      28H,47H,49H,4CH,54H,20H,42H,45H ; 4C2B (GILT BE
-        DB      49H,20H,4EH,49H,43H,48H,54H,5AH ; 4C33 I NICHTZ
-        DB      49H,45H,48H,55H,4EH,47H,20H,4FH ; 4C3B IEHUNG O
-        DB      44H,45H,52H,20H,4EH,49H,43H,48H ; 4C43 DER NICH
-        DB      54H,41H,55H,53H,57H,45H,52H,54H ; 4C4B TAUSWERT
-        DB      55H,4EH,47H,20H,44H,45H,52H,20H ; 4C53 UNG DER
-        DB      5AH,55H,53H,41H,54H,5AH,5AH,41H ; 4C5B ZUSATZZA
-        DB      48H,4CH,29H,0F0H,4CH,8BH,00H,20H ; 4C63 HL).L..
-        DB      4CH,06H,68H,68H,64H,66H,4CH,68H ; 4C6B L.hhdfLh
-        DB      0B9H,4CH,22H,00H,00H,00H,6CH,4CH ; 4C73 .L"...lL
-        DB      00H,50H,00H,44H,13H,32H,4DH,8AH ; 4C7B .P.D.2M.
-        DB      00H,7BH,4CH,0D8H,4DH,0E2H,46H,00H ; 4C83 .{L.M.F.
-        DB      00H,0E2H,46H,0A2H,80H,00H,00H,0BDH ; 4C8B ..F.....
-        DB      4AH,23H,00H,0A4H,51H,00H,00H,1EH ; 4C93 J#..Q...
-        DB      1EH,73H,44H,0CH,80H,4CH,20H,73H ; 4C9B .sD..L s
-        DB      44H,1EH,8FH,4BH,20H,47H,46H,1EH ; 4CA3 D..K GF.
-        DB      95H,4BH,20H,86H,4CH,1EH,2AH,46H ; 4CAB .K .L.*F
-        DB      20H,8CH,4CH,88H,92H,4CH,0FDH,4CH ; 4CB3  .L..L.L
-        DB      23H,00H,00H,00H,9AH,4CH,2EH,54H ; 4CBB #....L.T
-        DB      41H,42H,45H,4CH,4CH,45H,20H,32H ; 4CC3 ABELLE 2
-        DB      20H,28H,47H,49H,4CH,54H,20H,42H ; 4CCB  (GILT B
-        DB      45H,49H,20H,41H,55H,53H,57H,45H ; 4CD3 EI AUSWE
-        DB      52H,54H,55H,4EH,47H,20H,44H,45H ; 4CDB RTUNG DE
-        DB      52H,20H,5AH,55H,53H,41H,54H,5AH ; 4CE3 R ZUSATZ
-        DB      5AH,41H,48H,4CH,29H,4BH,4DH,8BH ; 4CEB ZAHL)KM.
-        DB      00H,0C1H,4CH,06H,68H,68H,64H,0F0H ; 4CF3 ..L.hhd.
-        DB      4CH,68H,1DH,4DH,24H,00H,00H,00H ; 4CFB Lh.M$...
-        DB      0F6H,4CH,92H,4CH,25H,00H,0A4H,51H ; 4D03 .L.L%..Q
-        DB      00H,00H,0FH,1EH,0CAH,44H,20H,8CH ; 4D0B .....D .
-        DB      4CH,88H,05H,4DH,94H,0F3H,41H,0DH ; 4D13 L..M..A.
-        DB      42H,90H,87H,4DH,25H,00H,00H,00H ; 4D1B B..M%...
-        DB      0DH,4DH,48H,4FH,0A4H,51H,26H,00H ; 4D23 .MHO.Q&.
-        DB      00H,00H,00H,00H,00H,50H,05H,0F5H ; 4D2B .....P..
-        DB      4DH,8AH,00H,2DH,4DH,12H,57H,41H ; 4D33 M..-M.WA
-        DB      48H,52H,53H,43H,48H,45H,49H,4EH ; 4D3B HRSCHEIN
-        DB      4CH,49H,43H,48H,4BH,45H,49H,54H ; 4D43 LICHKEIT
-        DB      6DH,4DH,8BH,00H,38H,4DH,1BH,4EH ; 4D4B mM..8M.N
-        DB      4FH,52H,4DH,49H,45H,52H,54H,45H ; 4D53 ORMIERTE
-        DB      20H,57H,41H,48H,52H,2DH,20H,57H ; 4D5B  WAHR- W
-        DB      41H,48H,52H,53H,43H,48H,45H,49H ; 4D63 AHRSCHEI
-        DB      4EH,2DH,0AEH,4DH,8BH,00H,51H,4DH ; 4D6B N-.M..QM
-        DB      13H,68H,1EH,32H,4DH,6CH,64H,4BH ; 4D73 .h.2MldK
-        DB      4DH,20H,0EBH,4BH,1EH,0BFH,44H,6CH ; 4D7B M .K..Dl
-        DB      64H,6DH,4DH,68H,0BEH,4DH,26H,00H ; 4D83 dmMh.M&.
-        DB      00H,00H,73H,4DH,1EH,53H,43H,48H ; 4D8B ..sM.SCH
-        DB      45H,49H,4EH,4CH,49H,43H,48H,4BH ; 4D93 EINLICHK
-        DB      45H,49H,54H,20H,20H,4CH,49H,43H ; 4D9B EIT  LIC
-        DB      48H,53H,54H,45H,20H,41H,4EH,5AH ; 4DA3 HSTE ANZ
-        DB      41H,48H,4CH,0EAH,4DH,8BH,00H,8FH ; 4DAB AHL.M...
-        DB      4DH,09H,1EH,0B1H,45H,6CH,64H,0AEH ; 4DB3 M...Eld.
-        DB      4DH,68H,68H,39H,4EH,27H,00H,00H ; 4DBB Mhh9N'..
-        DB      00H,0B4H,4DH,0CCH,4DH,0C2H,81H,00H ; 4DC3 ..M.M...
-        DB      00H,0A0H,4AH,02H,82H,00H,00H,86H ; 4DCB ..J.....
-        DB      4CH,62H,46H,00H,00H,0DEH,4DH,62H ; 4DD3 LbF...Mb
-        DB      4AH,00H,00H,47H,46H,62H,4EH,00H ; 4DDB J..GFbN.
-        DB      00H,73H,44H,43H,83H,00H,00H,6CH ; 4DE3 .sDC...l
-        DB      4EH,8BH,00H,4DH,46H,00H,00H,00H ; 4DEB N..MF...
-        DB      00H,00H,4DH,50H,8AH,00H,0F0H,4DH ; 4DF3 ..MP...M
-        DB      05H,4DH,28H,00H,0A4H,59H,00H,00H ; 4DFB .M(..Y..
-        DB      35H,1EH,86H,4CH,20H,95H,4BH,1EH ; 4E03 5..L .K.
-        DB      2AH,46H,20H,0C6H,4DH,1EH,0A0H,4AH ; 4E0B *F .M..J
-        DB      0EH,95H,4BH,20H,0CCH,4DH,1EH,95H ; 4E13 ..K .M..
-        DB      4BH,20H,0D2H,4DH,1EH,0C6H,4DH,20H ; 4E1B K .M..M
-        DB      0D8H,4DH,1EH,0CCH,4DH,20H,0DEH,4DH ; 4E23 .M..M .M
-        DB      60H,0EAH,4DH,0E4H,4DH,1EH,0F5H,4DH ; 4E2B `.M.M..M
-        DB      20H,1FH,46H,88H,0FBH,4DH,50H,4EH ; 4E33  .F..MPN
-        DB      28H,00H,00H,00H,03H,4EH,0EH,80H ; 4E3B (....N..
-        DB      1FH,46H,0AH,00H,4BH,1EH,1EH,2AH ; 4E43 .F..K..*
-        DB      46H,0FFH,1EH,47H,46H,0E8H,4EH,29H ; 4E4B F..GF.N)
-        DB      00H,00H,00H,41H,4EH,1FH,46H,0C2H ; 4E53 ...AN.F.
-        DB      80H,00H,00H,8FH,4BH,0ACH,00H,00H ; 4E5B ....K...
-        DB      00H,0FBH,4DH,2AH,00H,0A4H,55H,00H ; 4E63 ..M*..U.
-        DB      00H,1EH,4FH,8BH,00H,55H,46H,64H ; 4E6B ..O..UFd
-        DB      4EH,2AH,00H,0A4H,55H,00H,00H,72H ; 4E73 N*..U..r
-        DB      4EH,2AH,00H,0A4H,55H,00H,00H,65H ; 4E7B N*..U..e
-        DB      8AH,02H,36H,1EH,2AH,46H,00H,8CH ; 4E83 ..6.*F..
-        DB      4CH,0FFH,1EH,0BBH,49H,00H,47H,46H ; 4E8B L...I.GF
-        DB      0CH,2AH,46H,00H,1FH,46H,20H,5EH ; 4E93 .*F..F ^
-        DB      4EH,1EH,47H,46H,0CH,2AH,46H,00H ; 4E9B N.GF.*F.
-        DB      1FH,46H,0EH,5EH,4EH,04H,1FH,46H ; 4EA3 .F.^N..F
-        DB      04H,1FH,46H,20H,58H,4EH,60H,0EAH ; 4EAB ..F XN`.
-        DB      4DH,0E4H,4DH,88H,64H,4EH,0FFH,1EH ; 4EB3 M.M.dN..
-        DB      47H,46H,0CH,2AH,46H,00H,1FH,46H ; 4EBB GF.*F..F
-        DB      04H,1FH,46H,20H,58H,4EH,60H,6CH ; 4EC3 ..F XN`l
-        DB      4EH,0E4H,4DH,88H,72H,4EH,1EH,0BBH ; 4ECB N.M.rN..
-        DB      49H,00H,47H,46H,00H,1FH,46H,04H ; 4ED3 I.GF..F.
-        DB      1FH,46H,20H,58H,4EH,60H,0EAH,4DH ; 4EDB .F XN`.M
-        DB      0E4H,4DH,88H,7AH,4EH,0F6H,4EH,2AH ; 4EE3 .M.zN.N*
-        DB      00H,00H,00H,82H,4EH,05H,82H,1FH ; 4EEB ....N...
-        DB      46H,00H,00H,40H,4FH,2BH,00H,00H ; 4EF3 F..@O+..
-        DB      00H,0F0H,4EH,1FH,4BH,4FH,4EH,54H ; 4EFB ..N.KONT
-        DB      52H,4FH,4CH,4CH,53H,55H,4DH,4DH ; 4F03 ROLLSUMM
-        DB      45H,20H,20H,20H,20H,20H,20H,20H ; 4F0B E
-        DB      20H,20H,20H,20H,20H,20H,20H,20H ; 4F13
-        DB      20H,20H,20H,72H,4FH,8BH,00H,0FEH ; 4F1B    rO...
-        DB      4EH,1BH,68H,64H,1EH,4FH,6EH,10H ; 4F23 N.hd.On.
-        DB      09H,1EH,0D2H,4DH,62H,6EH,10H,00H ; 4F2B ...Mbn..
-        DB      1EH,0D8H,4DH,62H,6EH,10H,00H,1EH ; 4F33 ..Mbn...
-        DB      0DEH,4DH,62H,68H,8EH,8FH,4FH,2CH ; 4F3B .Mbh..O,
-        DB      00H,00H,00H,24H,4FH,0D6H,4FH,0A4H ; 4F43 ...$O.O.
-        DB      55H,2DH,00H,00H,00H,21H,57H,45H ; 4F4B U-...!WE
-        DB      49H,54H,45H,52H,45H,20H,52H,41H ; 4F53 ITERE RA
-        DB      45H,4EH,47H,45H,20H,45H,58H,49H ; 4F5B ENGE EXI
-        DB      53H,54H,49H,45H,52H,45H,4EH,20H ; 4F63 STIEREN
-        DB      4EH,49H,43H,48H,54H,20H,21H,0EFH ; 4F6B NICHT !.
-        DB      4FH,8BH,00H,50H,4FH,16H,8AH,02H ; 4F73 O..PO...
-        DB      00H,1EH,0F5H,4DH,00H,58H,4EH,0FFH ; 4F7B ...M.XN.
-        DB      64H,72H,4FH,68H,1EH,47H,46H,20H ; 4F83 drOh.GF
-        DB      1FH,46H,8EH,0FFH,0CEH,4FH,2DH,00H ; 4F8B .F...O-.
-        DB      00H,00H,78H,4FH,36H,1EH,95H,4BH ; 4F93 ..xO6..K
-        DB      0EH,58H,4EH,20H,95H,4BH,1EH,0C6H ; 4F9B .XN .K..
-        DB      4DH,0EH,58H,4EH,20H,0C6H,4DH,1EH ; 4FA3 M.XN .M.
-        DB      0CCH,4DH,0EH,58H,4EH,20H,0CCH,4DH ; 4FAB .M.XN .M
-        DB      1EH,0D2H,4DH,0CH,95H,4BH,20H,0D2H ; 4FB3 ..M..K .
-        DB      4DH,1EH,0D8H,4DH,0CH,0C6H,4DH,20H ; 4FBB M..M..M
-        DB      0D8H,4DH,1EH,0DEH,4DH,0CH,0CCH,4DH ; 4FC3 .M..M..M
-        DB      20H,0DEH,4DH,38H,50H,2EH,00H,00H ; 4FCB  .M8P...
-        DB      00H,97H,4FH,40H,50H,0A4H,59H,2FH ; 4FD3 ..O@P.Y/
-        DB      00H,00H,00H,7AH,4EH,2FH,00H,0A4H ; 4FDB ...zN/..
-        DB      5DH,00H,00H,08H,2DH,45H,52H,20H ; 4FE3 ]...-ER
-        DB      20H,31H,20H,3AH,0F5H,4FH,8BH,00H ; 4FEB  1 :.O..
-        DB      0E6H,4FH,00H,00H,8BH,00H,59H,46H ; 4FF3 .O....YF
-        DB      3CH,94H,0F3H,41H,0ACH,34H,88H,0DEH ; 4FFB <..A.4..
-        DB      4FH,64H,0E4H,4DH,6EH,03H,00H,1EH ; 5003 Od.Mn...
-        DB      47H,46H,00H,1FH,46H,62H,64H,0EFH ; 500B GF..Fbd.
-        DB      4FH,6EH,10H,02H,1EH,2AH,46H,04H ; 5013 On...*F.
-        DB      95H,4BH,62H,64H,0F5H,4FH,6EH,10H ; 501B .Kbd.On.
-        DB      09H,1EH,95H,4BH,62H,6EH,10H,00H ; 5023 ...Kbn..
-        DB      1EH,0C6H,4DH,62H,6EH,10H,00H,1EH ; 502B ..Mbn...
-        DB      0CCH,4DH,62H,68H,8EH,64H,50H,2FH ; 5033 .Mbh.dP/
-        DB      00H,00H,00H,0FBH,4FH,00H,00H,0A4H ; 503B ....O...
-        DB      5DH,30H,00H,00H,00H,00H,0F0H,79H ; 5043 ]0.....y
-        DB      46H,14H,0B4H,43H,8AH,00H,48H,50H ; 504B F..C..HP
-        DB      10H,8AH,02H,00H,1EH,4DH,50H,00H ; 5053 .....MP.
-        DB      73H,44H,0FFH,94H,0F3H,41H,0DH,42H ; 505B sD...A.B
-        DB      0FFH,6CH,50H,30H,00H,00H,00H,53H ; 5063 .lP0...S
-        DB      50H,74H,50H,31H,00H,00H,00H,51H ; 506B PtP1...Q
-        DB      46H,00H,00H,32H,00H,00H,00H,00H ; 5073 F..2....
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 507B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 5083 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 508B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 5093 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 509B ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50A3 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50AB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50B3 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50BB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50C3 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50CB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50D3 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50DB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50E3 ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50EB ........
-        DB      00H,00H,00H,00H,00H,00H,00H,00H ; 50F3 ........
-        DB      00H,00H,00H,00H,00H     ; 50FB .....
+        ENDIF
+
+;=====================================================================
+; ARBEITSSPEICHER ab RAM_BASE (nur reserviert, nicht in der Datei)
+; Darueber bis zum BDOS liegt der BASIC-Programmspeicher;
+; der Stack waechst von STACK_TOP nach unten.
+;=====================================================================
+        ORG     RAM_BASE
+V_4000: DS      1                       ; 4000H  (RAM_BASE+000H)
+V_4001: DS      1                       ; 4001H  (RAM_BASE+001H)
+V_4002: DS      1                       ; 4002H  (RAM_BASE+002H)
+V_4003: DS      1                       ; 4003H  (RAM_BASE+003H)
+V_4004: DS      1                       ; 4004H  (RAM_BASE+004H)
+V_4005: DS      1                       ; 4005H  (RAM_BASE+005H)
+V_4006: DS      125                     ; 4006H  (RAM_BASE+006H)
+V_4083: DS      1                       ; 4083H  (RAM_BASE+083H)
+V_4084: DS      2                       ; 4084H  (RAM_BASE+084H)
+ED_WPTR: DS     2                       ; 4086H  (RAM_BASE+086H)
+ED_RPTR: DS     2                       ; 4088H  (RAM_BASE+088H)
+ED_BUF: DS      96                      ; 408AH  (RAM_BASE+08AH)
+V_40EA: DS      31                      ; 40EAH  (RAM_BASE+0EAH)
+V_4109: DS      2                       ; 4109H  (RAM_BASE+109H)
+V_410B: DS      1                       ; 410BH  (RAM_BASE+10BH)
+V_410C: DS      1                       ; 410CH  (RAM_BASE+10CH)
+V_410D: DS      1                       ; 410DH  (RAM_BASE+10DH)
+V_410E: DS      1                       ; 410EH  (RAM_BASE+10EH)
+V_410F: DS      1                       ; 410FH  (RAM_BASE+10FH)
+V_4110: DS      3                       ; 4110H  (RAM_BASE+110H)
+V_4113: DS      119                     ; 4113H  (RAM_BASE+113H)
+V_418A: DS      2                       ; 418AH  (RAM_BASE+18AH)
+V_418C: DS      2                       ; 418CH  (RAM_BASE+18CH)
+V_418E: DS      2                       ; 418EH  (RAM_BASE+18EH)
+V_4190: DS      2                       ; 4190H  (RAM_BASE+190H)
+V_4192: DS      2                       ; 4192H  (RAM_BASE+192H)
+V_4194: DS      2                       ; 4194H  (RAM_BASE+194H)
+V_4196: DS      1                       ; 4196H  (RAM_BASE+196H)
+V_4197: DS      1                       ; 4197H  (RAM_BASE+197H)
+V_4198: DS      1                       ; 4198H  (RAM_BASE+198H)
+V_4199: DS      1                       ; 4199H  (RAM_BASE+199H)
+V_419A: DS      2                       ; 419AH  (RAM_BASE+19AH)
+SP_INIT: DS     2                       ; 419CH  (RAM_BASE+19CH)
+V_419E: DS      2                       ; 419EH  (RAM_BASE+19EH)
+V_41A0: DS      2                       ; 41A0H  (RAM_BASE+1A0H)
+V_41A2: DS      2                       ; 41A2H  (RAM_BASE+1A2H)
+V_41A4: DS      2                       ; 41A4H  (RAM_BASE+1A4H)
+V_41A6: DS      2                       ; 41A6H  (RAM_BASE+1A6H)
+V_41A8: DS      2                       ; 41A8H  (RAM_BASE+1A8H)
+V_41AA: DS      2                       ; 41AAH  (RAM_BASE+1AAH)
+V_41AC: DS      2                       ; 41ACH  (RAM_BASE+1ACH)
+V_41AE: DS      2                       ; 41AEH  (RAM_BASE+1AEH)
+V_41B0: DS      2                       ; 41B0H  (RAM_BASE+1B0H)
+V_41B2: DS      2                       ; 41B2H  (RAM_BASE+1B2H)
+V_41B4: DS      1                       ; 41B4H  (RAM_BASE+1B4H)
+V_41B5: DS      2                       ; 41B5H  (RAM_BASE+1B5H)
+RAMTOP: DS      2                       ; 41B7H  (RAM_BASE+1B7H) Speicherende (TOP, SIZE)
+V_41B9: DS      2                       ; 41B9H  (RAM_BASE+1B9H)
+V_41BB: DS      2                       ; 41BBH  (RAM_BASE+1BBH)
+V_41BD: DS      2                       ; 41BDH  (RAM_BASE+1BDH)
+V_41BF: DS      2                       ; 41BFH  (RAM_BASE+1BFH)
+V_41C1: DS      1                       ; 41C1H  (RAM_BASE+1C1H)
+V_41C2: DS      1                       ; 41C2H  (RAM_BASE+1C2H)
+V_41C3: DS      2                       ; 41C3H  (RAM_BASE+1C3H)
+V_41C5: DS      2                       ; 41C5H  (RAM_BASE+1C5H)
+V_41C7: DS      3                       ; 41C7H  (RAM_BASE+1C7H)
+V_41CA: DS      1                       ; 41CAH  (RAM_BASE+1CAH)
+V_41CB: DS      1                       ; 41CBH  (RAM_BASE+1CBH)
+V_41CC: DS      1                       ; 41CCH  (RAM_BASE+1CCH)
+V_41CD: DS      1                       ; 41CDH  (RAM_BASE+1CDH)
+V_41CE: DS      1                       ; 41CEH  (RAM_BASE+1CEH)
+V_41CF: DS      1                       ; 41CFH  (RAM_BASE+1CFH)
+V_41D0: DS      2                       ; 41D0H  (RAM_BASE+1D0H)
+V_41D2: DS      3                       ; 41D2H  (RAM_BASE+1D2H)
+V_41D5: DS      5                       ; 41D5H  (RAM_BASE+1D5H)
+V_41DA: DS      1                       ; 41DAH  (RAM_BASE+1DAH)
+V_41DB: DS      1                       ; 41DBH  (RAM_BASE+1DBH)
+V_41DC: DS      2                       ; 41DCH  (RAM_BASE+1DCH)
+V_41DE: DS      2                       ; 41DEH  (RAM_BASE+1DEH)
+V_41E0: DS      1                       ; 41E0H  (RAM_BASE+1E0H)
+V_41E1: DS      2                       ; 41E1H  (RAM_BASE+1E1H)
+V_41E3: DS      1                       ; 41E3H  (RAM_BASE+1E3H)
+V_41E4: DS      13                      ; 41E4H  (RAM_BASE+1E4H)
+V_41F1: DS      2                       ; 41F1H  (RAM_BASE+1F1H)
+V_41F3: DS      2                       ; 41F3H  (RAM_BASE+1F3H)
+V_41F5: DS      1                       ; 41F5H  (RAM_BASE+1F5H)
+V_41F6: DS      1                       ; 41F6H  (RAM_BASE+1F6H)
+V_41F7: DS      2                       ; 41F7H  (RAM_BASE+1F7H)
+V_41F9: DS      2                       ; 41F9H  (RAM_BASE+1F9H)
+CHANTAB: DS     9                       ; 41FBH  (RAM_BASE+1FBH)
+V_4204: DS      9                       ; 4204H  (RAM_BASE+204H)
+V_420D: DS      36                      ; 420DH  (RAM_BASE+20DH)
+V_4231: DS      176                     ; 4231H  (RAM_BASE+231H)
+FAC_TYPE: DS    1                       ; 42E1H  (RAM_BASE+2E1H)
+FAC:    DS      1                       ; 42E2H  (RAM_BASE+2E2H)
+V_42E3: DS      1                       ; 42E3H  (RAM_BASE+2E3H)
+V_42E4: DS      1                       ; 42E4H  (RAM_BASE+2E4H)
+FAC_SIGN_MSB: DS 1                      ; 42E5H  (RAM_BASE+2E5H)
+FAC_EXP: DS     1                       ; 42E6H  (RAM_BASE+2E6H)
+ARG:    DS      2                       ; 42E7H  (RAM_BASE+2E7H)
+V_42E9: DS      1                       ; 42E9H  (RAM_BASE+2E9H)
+ARG_SIGN_MSB: DS 1                      ; 42EAH  (RAM_BASE+2EAH)
+ARG_EXP: DS     1                       ; 42EBH  (RAM_BASE+2EBH)
+V_42EC: DS      2                       ; 42ECH  (RAM_BASE+2ECH)
+V_42EE: DS      2                       ; 42EEH  (RAM_BASE+2EEH)
+V_42F0: DS      1                       ; 42F0H  (RAM_BASE+2F0H)
+V_42F1: DS      1                       ; 42F1H  (RAM_BASE+2F1H)
+V_42F2: DS      1                       ; 42F2H  (RAM_BASE+2F2H)
+V_42F3: DS      1                       ; 42F3H  (RAM_BASE+2F3H)
+V_42F4: DS      1                       ; 42F4H  (RAM_BASE+2F4H)
+V_42F5: DS      1                       ; 42F5H  (RAM_BASE+2F5H)
+V_42F6: DS      2                       ; 42F6H  (RAM_BASE+2F6H)
+V_42F8: DS      3                       ; 42F8H  (RAM_BASE+2F8H)
+V_42FB: DS      1                       ; 42FBH  (RAM_BASE+2FBH)
+V_42FC: DS      177                     ; 42FCH  (RAM_BASE+2FCH)
+STACK_TOP:                              ; 43ADH  (RAM_BASE+3ADH)
         END

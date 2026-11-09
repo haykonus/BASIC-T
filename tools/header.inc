@@ -25,8 +25,9 @@
 ;   3300H-36FFH  Zeilenverwaltung, Fehler, Meldungen, Zeichen-E/A
 ;   3700H-3AFFH  DRVTAB (Treiber-Haken), Datei-E/A ueber BDOS
 ;   3B00H-3E27H  Grafikmodul (DOT, LINE, FILL, TEST, OFF)
-;   4000H-50FFH  Abbild des Arbeitsspeichers (Variablen, Puffer);
-;                wichtige Zellen: FAC 42E2H, ARG 42E7H, FAC_TYPE 42E1H
+;   4000H-43ADH  Arbeitsspeicher (am Ende als DS-Labels; nicht in der
+;                Datei). Das Original enthielt ab 4000H nur einen beim
+;                SAVE mitgespeicherten Speicherrest; er entfaellt hier.
 ;
 ; SYNTAX-KNOTEN (Kommentar "KW/TOK/RULE/EPS") der Grammatik:
 ;   Bit7 letzte Alternative, Bit6 Aktionsbyte folgt (rel. vorwaerts),
@@ -50,4 +51,16 @@ BDOS    EQU     0005H                   ; CP/M-Systemaufruf, Funktion in C
 GPORT   EQU     08H                     ; Bit7=1: normaler RAM, Bit7=0: Video-RAM
 GRAM    EQU     9000H                   ; 4 KByte Pixelspeicher 256x128, 32 Byte/Zeile
 
+; Ladeadresse des Codes. Standard 0100H (CP/M, byte-identisch).
+; Anders z. B. mit:  asl -D CODE_ORG=0200H ...  Dann steht bei 0100H
+; nur ein Sprung nach START, und das Speicherabbild ab 3E28H entfaellt.
+; Der Code muss unter RAM_BASE bleiben.
+RAM_BASE EQU    4000H                   ; Beginn des Arbeitsspeichers
+        IFNDEF  CODE_ORG
+CODE_ORG EQU    0100H
+        ENDIF
+        IF      CODE_ORG<>0100H
         ORG     0100H
+        JP      START
+        ENDIF
+        ORG     CODE_ORG

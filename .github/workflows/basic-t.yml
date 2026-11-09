@@ -1,0 +1,24 @@
+name: BASIC-T assemblieren und vergleichen
+on:
+  push:
+    paths: ["**", ".github/workflows/basic-t.yml"]
+  pull_request:
+    paths: ["**"]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+      - name: AS (Alfred Arnold) installieren
+        run: nix profile install nixpkgs#asl
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r tools/requirements.txt
+      - name: Assemblieren und byte-genau vergleichen
+        run: make check
+      - name: Quelltext reproduzierbar aus dem Original erzeugbar
+        run: sh tools/regen.sh && git diff --exit-code src/basict.asm
+      - uses: actions/upload-artifact@v4
+        with: { name: basict-build, path: build/ }

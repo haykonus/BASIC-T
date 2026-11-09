@@ -11,9 +11,24 @@ $(BUILD)/BASICT.COM: src/basict.asm
 	$(P2BIN) -q $(BUILD)/basict.p $@
 
 check: $(BUILD)/BASICT.COM
-	cmp $(BUILD)/BASICT.COM original/BASICT.COM
-	cd $(BUILD) && sha256sum -c ../original/BASICT.sha256
-	@echo "IDENTISCH mit dem Original"
+	cd original && sha256sum -c BASICT.sha256
+	test $$(wc -c < $(BUILD)/BASICT.COM) -eq 16128
+	cmp -n 16128 $(BUILD)/BASICT.COM original/BASICT.COM
+	cmp $(BUILD)/BASICT.COM bin/BASICT.COM || { echo "bin/BASICT.COM veraltet: make bin"; exit 1; }
+	@echo "IDENTISCH mit dem Original (0100H-3FFFH; ab 4000H nur Speicherrest)"
+
+# Gebaute Datei fuer den Browser-Emulator ablegen
+bin: $(BUILD)/BASICT.COM
+	mkdir -p bin
+	cp $(BUILD)/BASICT.COM bin/BASICT.COM
+
+# Probe: an anderer Adresse assemblieren (Standard 0200H)
+RELOC ?= 0200H
+reloc:
+	mkdir -p $(BUILD)
+	$(ASL) -cpu z80undoc -q -D CODE_ORG=$(RELOC) -o $(BUILD)/reloc.p src/basict.asm
+	$(P2BIN) -q -l 0 $(BUILD)/reloc.p $(BUILD)/BASICT-$(RELOC).COM
+	@echo "erzeugt: $(BUILD)/BASICT-$(RELOC).COM"
 
 regen:
 	sh tools/regen.sh
@@ -21,4 +36,4 @@ regen:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all check regen clean
+.PHONY: all bin check reloc regen clean

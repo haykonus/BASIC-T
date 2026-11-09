@@ -8,7 +8,7 @@
 | 3700H-378BH | Geräte-/Treibertabelle (DRVTAB) mit CP/M-Ein- und Ausgabe. Der Haken 3703H ist nur ein `RET` |
 | 37AFH-3A93H | E/A-Treiber (BDOS-Aufrufe, Dateien) |
 | 3B00H-3E27H | **Grafikmodul**, eigenständig, mit FFH aufgefüllt (sieht nach getrennt assembliertem Modul aus) |
-| 4000H-50FFH | Arbeitsspeicher-Abbild (Variablen, Puffer). Mitgespeichert, nicht ausgeführt |
+| 4000H-50FFH | In der Originaldatei: mitgespeicherter Rest des Arbeitsspeichers, nicht ausgeführt. Im Quelltext weggelassen; der Arbeitsspeicher steht dort als Labels ab `RAM_BASE` |
 
 Wie das BASIC arbeitet: Es ist **kein Token-Interpreter wie MS-BASIC**. Eine tabellengesteuerte Grammatik (Syntaxknoten mit Schlüsselwort, Unterregel, Aktion und Folgezeiger) übersetzt jede Zeile in einen Zwischencode. Diesen Code führt eine Laufzeitschleife (1460H) über eine Sprungtabelle aus (OPTAB, 1271H). Das passt zur Sprachbeschreibung von 1983.
 
@@ -84,4 +84,4 @@ Die Hardware ist also eine einfache, selbst gebaute Bildspeicher-Karte am K1520-
 ## 5. Hinweise zum Quelltext
 - `basict.asm` ist mit AS byte-identisch übersetzbar (siehe `vergleichsprotokoll.txt`).
 - Grafikmodul, Dispatcher und Syntaxmaschine sind benannt und kommentiert (G_DOT, G_LINE, OPTAB, SYN_MATCH …). Syntaxknoten sind als `DB` mit entschlüsseltem Kommentar abgelegt (Schlüsselwort, Aktion, Folgeknoten).
-- Bereiche, die die Ablaufverfolgung nicht erreicht hat (Konstanten, Meldungstexte, einige indirekt erreichte Routinen), stehen als `DB`. Sie sind byte-genau, aber noch nicht als Befehle aufgeschlüsselt.
+- Auch die nur indirekt erreichten Routinen (über Vektoren, berechnete Sprünge oder Rücksprungadressen) sind als Befehle aufgeschlüsselt. Als `DB` stehen nur noch echte Daten: Grammatik-Knoten, Tabellen, Gleitkomma-Konstanten, Meldungstexte und Füllbytes. Der Speicherrest ab 4000H ist weggelassen.

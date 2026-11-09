@@ -8,6 +8,7 @@ cp "$R/original/BASICT.COM" "$T"/*.py "$T/header.inc" "$W/"
 cd "$W"
 python3 gram.py   # Grammatik-Knoten und Aktionen
 python3 optab.py  # Laufzeit-Opcodetabelle
+python3 scan.py   # Zustandstabelle der Zeichen-Erkennung
 python3 trace.py  # Ablaufverfolgung Code/Daten
 python3 gen.py    # AS-Quelltext erzeugen
 cp src/basict.asm "$R/src/basict.asm"

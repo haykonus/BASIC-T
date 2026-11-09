@@ -9,14 +9,17 @@ BASIC. Die hier vorliegende COM-Datei von 1986 enthält zusätzlich Grafikbefehl
 (DOT, LINE, FILL, TEST …).
 
 Der Quelltext für den Makroassembler [AS von Alfred Arnold](http://john.ccac.rwth-aachen.de:8000/as/as_EN.html)
-ergibt eine Datei, die **Byte für Byte mit dem Original übereinstimmt** (20480 Byte).
+ergibt eine Datei, die **Byte für Byte mit dem Original übereinstimmt** (0100H–3FFFH,
+16128 Byte). Das Original ist 20480 Byte lang: Ab 4000H enthält es nur einen Rest
+des Arbeitsspeichers, der 1986 beim `SAVE` mitgespeichert wurde. Dieser Rest gehört
+nicht zum Programm und ist im Quelltext weggelassen.
 
 ## Schnellstart
 
 ```sh
 $ cd basic-t
 $ make check
-IDENTISCH mit dem Original
+IDENTISCH mit dem Original (0100H-3FFFH; ab 4000H nur Speicherrest)
 ```
 
 Voraussetzungen: `asl` und `p2bin` (Paket *asl*, z. B. `nix profile install nixpkgs#asl`,
@@ -74,6 +77,26 @@ Den Quelltext aus dem Original neu erzeugen (Python 3, `pip install -r tools/req
 sh tools/regen.sh
 ```
 
+### An einer anderen Adresse assemblieren
+
+Alle Adressen im Programm (Sprünge, Tabellen, Zeiger auf Texte und
+Grammatik) stehen als Namen im Quelltext. Deshalb lässt sich BASIC-T an
+einer anderen Ladeadresse übersetzen:
+
+```sh
+make reloc                 # build/BASICT-0200H.COM, Code ab 0200H
+make reloc RELOC=0180H     # beliebige andere Adresse
+```
+
+Bei 0100H steht dann nur ein Sprung nach `START`, die Füllbytes hinter
+dem Programm entfallen. Der Arbeitsspeicher beginnt bei `RAM_BASE`
+(4000H), darum muss der Code unter 4000H enden
+(Startadresse höchstens etwa 02D8H); sonst bricht AS mit einer
+Fehlermeldung ab. Eine an 0200H und an 0180H übersetzte Fassung lief im
+Emulator Befehl für Befehl genauso ab wie das Original (rund 5,7
+Millionen Befehle: Rechnen, Unterprogramme, LIST, Laden von Diskette,
+Grafik).
+
 Bei jedem Push führt GitHub Actions beide Schritte automatisch aus
 (`.github/workflows/basic-t.yml`, eine Ebene über diesem Ordner).
 
@@ -83,7 +106,9 @@ Bei jedem Push führt GitHub Actions beide Schritte automatisch aus
   jede Zeile in Zwischencode, den die Laufzeit über `OPTAB` (1271H) ausführt.
 - **3700H:** patchbare Treibertabelle (`DRVTAB`). Der Haken 3703H ist nur ein `RET`.
 - **3B00H–3E27H:** Grafikmodul.
-- **4000H–50FFH:** mitgespeichertes Abbild des Arbeitsspeichers.
+- **4000H–43ADH:** Arbeitsspeicher. Er steht am Ende des Quelltexts als Labels mit `DS`
+  ab `RAM_BASE` (z. B. `ED_BUF`, `FAC`, `ARG`, `STACK_TOP`); Zellen, deren Zweck noch
+  nicht sicher ist, heißen `V_xxxx`. Darüber liegt der BASIC-Programmspeicher.
 
 Die Syntaxknoten stehen als `DB` im Quelltext. Ihr Kommentar zeigt, was sie bedeuten:
 Schlüsselwort, Aktion und Folgeknoten.
@@ -130,3 +155,7 @@ Noch nicht entschlüsselte Nebenpfade bleiben byte-genau erhalten.
 Die Originaldatei und die Sprachbeschreibung sind historische Dokumente des
 VEB TuR Dresden und werden hier zu Dokumentationszwecken bereitgestellt.
 **Lizenz für die Werkzeuge und Kommentare: noch festzulegen.**
+
+## Beispiele
+
+`examples/APFELGK.GBA` (Apfelmännchen, Gleitkomma) und `examples/APFELINT.GBA` (dasselbe in Ganzzahlarithmetik).
