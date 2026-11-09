@@ -84,14 +84,25 @@ Grammatik) stehen als Namen im Quelltext. Deshalb lässt sich BASIC-T an
 einer anderen Ladeadresse übersetzen:
 
 ```sh
-make reloc                 # build/BASICT-0200H.COM, Code ab 0200H
-make reloc RELOC=0180H     # beliebige andere Adresse
+make reloc                       # build/BASICT-0200H-4000H.COM, Code ab 0200H
+make reloc RELOC=0180H           # beliebige andere Adresse
+make reloc RELOC=0100H RAM=5000H # Arbeitsspeicher ab 5000H
 ```
+
+`RAM` setzt `RAM_BASE`, den Beginn des Arbeitsspeichers. Weil viele
+Routinen nur das untere Adressbyte setzen (z. B. `LD L,0E2H`), rundet
+`ALIGN 100H` im Quelltext ihn auf die nächste 256-Byte-Grenze (xx00H)
+auf; der Arbeitsspeicher beginnt dann bei der Marke `RAM_START`. Werte mit
+Buchstaben vorn mit 0 schreiben (`RAM=0A000H`). Der Bereich 8000H–9FFFH
+ist ungeeignet, dort wird bei Grafik der Bildspeicher eingeblendet.
+Mit RAM ab 5000H, 0A000H (Code 0100H) und 6000H (Code 0200H) liefert
+BASIC-T im Emulator denselben Bildschirm und dieselbe Grafik wie das
+Original.
 
 Bei 0100H steht dann nur ein Sprung nach `START`, die Füllbytes hinter
 dem Programm entfallen. Der Arbeitsspeicher beginnt bei `RAM_BASE`
-(4000H), darum muss der Code unter 4000H enden
-(Startadresse höchstens etwa 02D8H); sonst bricht AS mit einer
+(Standard 4000H), darum muss der Code unter `RAM_BASE` enden
+(bei 4000H Startadresse höchstens etwa 02D8H); sonst bricht AS mit einer
 Fehlermeldung ab. Eine an 0200H und an 0180H übersetzte Fassung lief im
 Emulator Befehl für Befehl genauso ab wie das Original (rund 5,7
 Millionen Befehle: Rechnen, Unterprogramme, LIST, Laden von Diskette,

@@ -55,7 +55,13 @@ GRAM    EQU     9000H                   ; 4 KByte Pixelspeicher 256x128, 32 Byte
 ; Anders z. B. mit:  asl -D CODE_ORG=0200H ...  Dann steht bei 0100H
 ; nur ein Sprung nach START, und das Speicherabbild ab 3E28H entfaellt.
 ; Der Code muss unter RAM_BASE bleiben.
+        IFNDEF  RAM_BASE
 RAM_BASE EQU    4000H                   ; Beginn des Arbeitsspeichers
+        ENDIF
+; Viele Routinen setzen nur L (z. B. LD L,0E2H) und rechnen damit, dass
+; jede Zelle denselben Abstand zur 256-Byte-Seite hat wie im Original.
+; Deshalb rundet ALIGN 100H am Ende RAM_BASE auf die naechste xx00H auf
+; (Marke RAM_START).
         IFNDEF  CODE_ORG
 CODE_ORG EQU    0100H
         ENDIF

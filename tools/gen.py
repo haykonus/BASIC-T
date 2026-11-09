@@ -57,7 +57,8 @@ for a in FP_CONSTANTS: inner|=set(range(a+1,a+(4 if a==0x2CD8 else 5)))
 def isaddr(v): return 0x100<=v<0x3E28
 RAM_LO,RAM_TOP=0x4000,0x43AD          # Arbeitsspeicher bis Stack-Obergrenze
 def isram(v): return RAM_LO<=v<=RAM_TOP
-RAMREF={0x0113:'RAM_BASE-1'}          # Speichertest beginnt unter RAM_BASE
+RAMREF={0x0113:'RAM_START-1'}         # Speichertest beginnt unter RAM_START
+HIREF={0x2E54:'FAC>>8'}              # nur High-Byte geladen, L wird einzeln gesetzt
 ramcells={v for v in names if isram(v)}
 for a0,(t,n) in ins.items():
     if a0 in NUMS or a0 in RAMREF: continue
@@ -95,6 +96,7 @@ def conv(a,t):
         if v in names and v>=0x100 and not ops.startswith('(C)'):
             if not re.search(r'\(0x'+mo.group(1)+r'\)',ops) or m=='LD': return names[v]
         if a in RAMREF and v==0x3FFF: return RAMREF[a]
+        if a in HIREF and v==0x42: return HIREF[a]
         if a not in NUMS and isram(v) and len(mo.group(1))>2: return ramname(v)
         if a not in NUMS and isaddr(v) and len(mo.group(1))>2: return sym(v)
         if m in('IN','OUT'): return 'GPORT' if v==8 else hx(v)
@@ -203,10 +205,12 @@ out.append('; Darueber bis zum BDOS liegt der BASIC-Programmspeicher;')
 out.append('; der Stack waechst von STACK_TOP nach unten.')
 out.append(';'+'='*69)
 out.append(line('','ORG','RAM_BASE'))
+out.append(line('','ALIGN','100H','auf 256-Byte-Seite runden'))
+out.append('RAM_START:')
 for k,v in enumerate(cells):
-    if v==RAM_TOP: out.append(line(ramname(v)+':','','','%04XH  (RAM_BASE+%03XH)'%(v,v-RAM_LO))); continue
+    if v==RAM_TOP: out.append(line(ramname(v)+':','','','%04XH  (RAM_START+%03XH)'%(v,v-RAM_LO))); continue
     nx=cells[k+1]
-    out.append(line(ramname(v)+':','DS',str(nx-v),'%04XH  (RAM_BASE+%03XH)'%(v,v-RAM_LO)))
+    out.append(line(ramname(v)+':','DS',str(nx-v),'%04XH  (RAM_START+%03XH)'%(v,v-RAM_LO)))
 out.append(line('','END'))
 for k in set(C)-used: print('WARNUNG: Kommentar nicht platziert: %04X'%k)
 open('src/basict.asm','w').write('\n'.join(out)+'\n')
