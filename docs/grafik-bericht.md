@@ -1,18 +1,33 @@
-# BASIC-T (VEB TuR Dresden, 1986): Grafikbefehle und Grafik-Hardware
+# BASIC-T Grafik-Hardware und Grafikbefehle
 
-## 1. Programmaufbau (BASICT.COM, 20480 Byte, ab 0100H)
+## 1. Grafik-Hardware auf einen Blick
 
-| Bereich | Inhalt |
+| | |
 |---|---|
-| 0100H-36FFH | Interpreter: Syntaxtabellen, Übersetzer, Laufzeit, Gleitkomma, Meldungen |
-| 3700H-378BH | Geräte-/Treibertabelle (DRVTAB) mit CP/M-Ein- und Ausgabe. Der Haken 3703H ist nur ein `RET` |
-| 37AFH-3A93H | E/A-Treiber (BDOS-Aufrufe, Dateien) |
-| 3B00H-3E27H | **Grafikmodul**, eigenständig, mit FFH aufgefüllt (sieht nach getrennt assembliertem Modul aus) |
-| 4000H-50FFH | In der Originaldatei: mitgespeicherter Rest des Arbeitsspeichers, nicht ausgeführt. Im Quelltext weggelassen; der Arbeitsspeicher steht dort als Labels ab `RAM_BASE` |
+| **Auflösung** | 256 × 128 Punkte, 1 Bit pro Punkt |
+| **Bildspeicher** | 9000H–9FFFH, 32 Byte pro Zeile, Ursprung unten links |
+| **Umschaltung** | Port 08H: Bit 7 = 0 blendet Video-RAM ein |
+| **Controller** | keiner – direkter CPU-Zugriff |
+| **Befehle** | DOT, CDOT, LINE, CLINE, FILL, TEST, OFF |
+
+## 2. Aufteilung des Video-Speichers
+
+Bit 7 = 0 an Port 08H blendet ein 8-KByte-Fenster **8000H–9FFFH** ein
+(Bit 7 = 1 schaltet zurück auf den normalen CP/M-Arbeitsspeicher; jeder Zugriff
+mit `DI` … `EI`):
+
+| Adressbereich | Größe | Funktion | Befund |
+|---|---|---|---|
+| 8000H–81FFH | 512 Byte | Zeichen-/ASCII-Speicher | wahrscheinlich: `OFF` löscht mit 00H; 32 × 16 oder 64 × 8 Zeichen |
+| 8200H–83FFH | 512 Byte | Attribut-/Farbspeicher | wahrscheinlich: 1:1 zum Zeichenspeicher, `OFF` setzt 27H |
+| 8400H–8FFFH | 3 KByte | ungenutzt | wird nie adressiert (Reserve oder Zeichensatz?) |
+| 9000H–9FFFH | 4 KByte | Grafik-Pixelspeicher | sicher: 256 × 128, 1 Bit/Punkt, 32 Byte/Zeile |
+
+Quelle: Routine `G_CLEAR` (3DEFH) und die Adressrechnung von DOT/LINE/FILL/TEST.
 
 Wie das BASIC arbeitet: Es ist **kein Token-Interpreter wie MS-BASIC**. Eine tabellengesteuerte Grammatik (Syntaxknoten mit Schlüsselwort, Unterregel, Aktion und Folgezeiger) übersetzt jede Zeile in einen Zwischencode. Diesen Code führt eine Laufzeitschleife (1460H) über eine Sprungtabelle aus (OPTAB, 1271H). Das passt zur Sprachbeschreibung von 1983.
 
-## 2. Grafikbefehle (neu gegenüber 1983)
+## 3. Grafikbefehle (neu gegenüber 1983)
 
 In der Sprachbeschreibung von 1983 kommt kein Grafikbefehl vor. Alle folgenden Befehle sind neu:
 
@@ -30,9 +45,9 @@ In der Sprachbeschreibung von 1983 kommt kein Grafikbefehl vor. Alle folgenden B
 
 Nur sieben Befehle sind also wirklich ausprogrammiert. Die übrigen springen in eine patchbare Treibertabelle, ähnlich wie die Beschreibung von 1983 es für den X-Y-Schreiber vorsieht. Vermutlich gab es für Plotter, Hardcopy, Farbe usw. gesonderte Treiber.
 
-## 3. Was die Routinen über die Hardware verraten
+## 4. Was die Routinen über die Hardware verraten
 
-### 3.1 Bildspeicher
+### 4.1 Bildspeicher
 ```text
 Adresse = 9000H + (127 - y) * 32 + x / 8
 Bit     = 80H >> (x AND 7)        (Bit 7 = linkes Pixel)
@@ -42,7 +57,7 @@ Bit     = 80H >> (x AND 7)        (Bit 7 = linkes Pixel)
 - **Der Ursprung liegt unten links** (y wird invertiert), wie bei einem Plotter oder Koordinatensystem.
 - Es gibt keine Abfrage von Status- oder Busy-Bits und keine Befehlsports. Die CPU schreibt direkt in den Speicher, es gibt **keinen Grafikprozessor**.
 
-### 3.2 Speicherumschaltung über Port 08H
+### 4.2 Speicherumschaltung über Port 08H
 Jeder Zugriff auf den Bildspeicher läuft so ab:
 ```text
 DI
@@ -55,20 +70,20 @@ EI
 - Wegen `DI` darf während der Einblendung keine Interruptroutine auf diesen Bereich zugreifen. Der Rechner nutzt also Interrupts, etwa für Tastatur oder Uhr.
 - Das Register A wird mit `EX AF,AF'` gerettet. Der Port ist offenbar nur beschreibbar, er wird nie gelesen.
 
-### 3.3 Zweiter Bereich 8000H-83FFH
+### 4.3 Zweiter Bereich 8000H-83FFH
 OFF löscht nicht nur den Pixelspeicher, sondern füllt auch:
 - 8000H-81FFH mit 00H (512 Byte)
 - 8200H-83FFH mit 27H (512 Byte)
 
 Das deutet auf einen **Alphanumerik-Bildspeicher mit Attributen** im selben eingeblendeten Fenster hin: 512 Zeichen (etwa 32 × 16 oder 64 × 8) plus 512 Attribut-Bytes. 27H wäre dann das Standard-Attribut, zum Beispiel Vordergrund 7 = weiß und Hintergrund 2 im Format 0bbb0fff oder ähnlich. Möglich ist auch ein Farbattribut für die Grafik in Kacheln. Das ist **Vermutung**, denn die Befehle COL und GOL, die das klären würden, sind in dieser Datei leer.
 
-### 3.4 Algorithmen
+### 4.4 Algorithmen
 - **LINE/CLINE** arbeiten mit einem **DDA-Verfahren in 8.8-Festkomma**, nicht mit Bresenham. Die Steigung wird durch fortgesetzte Subtraktion berechnet, Schrittachse ist die längere Achse. Es gibt vier Fälle (Bit 1 = y fällt, Bit 2 = steil). Jeder Punkt wird einzeln gesetzt (3D95H), dabei wird für jeden Punkt neu umgeschaltet.
 - **FILL** füllt das Rechteck zeilenweise: linkes und rechtes Teilbyte per Maske, dazwischen ganze Bytes FFH bzw. 00H.
 - **TEST** liest das Byte und rotiert das gewünschte Bit ins Carry.
 - **Clipping gibt es nicht.** Zu große Werte werden nur durch das Abschneiden auf 8 bzw. 7 Bit „gefaltet“.
 
-## 4. Schlussfolgerung zur Hardware
+## 5. Schlussfolgerung zur Hardware
 
 | Merkmal | Befund | Sicherheit |
 |---|---|---|
@@ -81,7 +96,4 @@ Das deutet auf einen **Alphanumerik-Bildspeicher mit Attributen** im selben eing
 
 Die Hardware ist also eine einfache, selbst gebaute Bildspeicher-Karte am K1520-Bus. Typisch für Betriebs-Eigenentwicklungen der DDR: Video-RAM als umschaltbare Speicherbank, damit CP/M den ganzen Arbeitsspeicher behält, mit einem Ein-Bit-Steuerport auf E/A-Adresse 08H. Mir ist kein serienmäßiges Robotron-Gerät mit genau diesen Daten bekannt (256 × 128, Port 08H). Es dürfte sich um eine Entwicklung des TuR selbst handeln, eventuell für Röntgen- oder Messtechnik-Arbeitsplätze.
 
-## 5. Hinweise zum Quelltext
-- `basict.asm` ist mit AS byte-identisch übersetzbar (siehe `vergleichsprotokoll.txt`).
-- Grafikmodul, Dispatcher und Syntaxmaschine sind benannt und kommentiert (G_DOT, G_LINE, OPTAB, SYN_MATCH …). Syntaxknoten sind als `DB` mit entschlüsseltem Kommentar abgelegt (Schlüsselwort, Aktion, Folgeknoten).
-- Auch die nur indirekt erreichten Routinen (über Vektoren, berechnete Sprünge oder Rücksprungadressen) sind als Befehle aufgeschlüsselt. Als `DB` stehen nur noch echte Daten: Grammatik-Knoten, Tabellen, Gleitkomma-Konstanten, Meldungstexte und Füllbytes. Der Speicherrest ab 4000H ist weggelassen.
+

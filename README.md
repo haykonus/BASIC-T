@@ -1,77 +1,140 @@
-# BASIC-T – Rekonstruktion eines DDR-BASIC für CP/M (Z80/U880)
+# BASIC-T – Rekonstruktion eines "BASIC-Compreters für U880 (Z80)"
 
-**VEB Transformatoren- und Röntgenwerk „Hermann Matern“ Dresden · 1983/1986**
+[![Emulator](pic/emulator.png)](https://basict.peppermint.de/emulator)
 
-Ein seltenes Z80/U880-BASIC für CP/M, vollständig rückübersetzt. BASIC-T wurde im
-VEB Transformatoren- und Röntgenwerk „Hermann Matern“ Dresden entwickelt
-(Sprachbeschreibung: R. Heyne, Stand 27.10.1983) und ist kein Klon eines bekannten
-BASIC. Die hier vorliegende COM-Datei von 1986 enthält zusätzlich Grafikbefehle
-(DOT, LINE, FILL, TEST …).
+## Historischer Hintergrund
 
-Der Quelltext für den Makroassembler [AS von Alfred Arnold](http://john.ccac.rwth-aachen.de:8000/as/as_EN.html)
-ergibt eine Datei, die **Byte für Byte mit dem Original übereinstimmt** (0100H–3FFFH,
-16128 Byte). Das Original ist 20480 Byte lang: Ab 4000H enthält es nur einen Rest
-des Arbeitsspeichers, der 1986 beim `SAVE` mitgespeichert wurde. Dieser Rest gehört
-nicht zum Programm und ist im Quelltext weggelassen.
+Ausgangspunkt für dieses Projekt war ein Zufallsfund in einer DDR-Zeitschrift. Rainer Heyne stellte das System 1984 in *radio fernsehen elektronik* (Heft 3, S. 150–152) als [„Basic-Compreter für U 880“](docs/rfe_1984_3_S.150-152.pdf) vor (*VEB Transformatoren- und Röntgenwerk „Hermann Matern“ Dresden*). Die Original-Quellprogramme zu dem System sind bis heute nicht aufgetaucht. 
 
-## Schnellstart
+Durch Recherche im [Robotrontechnik-Forum](https://www.robotrontechnik.de/html/forum/thwb/index.php) (s. [Danksagung](#danksagung)) konnte eine lauffähige COM-Datei für SCP (CP/M) aufgefunden werden, die jedoch zunächst nur das enthaltene "LOTTO-Programm" startete. Das lauffähige Programm war ohne BASIC-Quelltext in der Datei gespeichert, was nur durch die Übersetzung des Programms durch den Compreter in einen Zwischencode möglich war. Das ist gleichzeitig auch der Grund für eine schnellere Abarbeitung der Programme im Vergleich zu einem reinen BASIC-Interpreter. 
 
-```sh
-$ cd basic-t
-$ make check
-IDENTISCH mit dem Original (0100H-3FFFH; ab 4000H nur Speicherrest)
-```
+Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) an. Durch Analyse der Binärdatei mit Hilfe von KI-Werkzeugen, konnte der [Quelltext](src) restauriert werden. Zusätzlich wurde ein [Emulator](https://basict.peppermint.de/emulator) erstellt, um dieses interessant historische Software testen zu können.  
 
-Voraussetzungen: `asl` und `p2bin` (Paket *asl*, z. B. `nix profile install nixpkgs#asl`,
-oder aus dem Quelltext bauen) sowie GNU make.
-
-## Grafik-Hardware auf einen Blick
-
-| | |
-|---|---|
-| **Auflösung** | 256 × 128 Punkte, 1 Bit pro Punkt |
-| **Bildspeicher** | 9000H–9FFFH, 32 Byte pro Zeile, Ursprung unten links |
-| **Umschaltung** | Port 08H: Bit 7 = 0 blendet Video-RAM ein |
-| **Controller** | keiner – direkter CPU-Zugriff |
-| **Befehle** | DOT, CDOT, LINE, CLINE, FILL, TEST, OFF |
-
-Details und Herleitung in [`docs/grafik-bericht.md`](docs/grafik-bericht.md).
-
-## Aufteilung des Video-Speichers
-
-Bit 7 = 0 an Port 08H blendet ein 8-KByte-Fenster **8000H–9FFFH** ein
-(Bit 7 = 1 schaltet zurück auf den normalen CP/M-Arbeitsspeicher; jeder Zugriff
-mit `DI` … `EI`):
-
-| Adressbereich | Größe | Funktion | Befund |
-|---|---|---|---|
-| 8000H–81FFH | 512 Byte | Zeichen-/ASCII-Speicher | wahrscheinlich: `OFF` löscht mit 00H; 32 × 16 oder 64 × 8 Zeichen |
-| 8200H–83FFH | 512 Byte | Attribut-/Farbspeicher | wahrscheinlich: 1:1 zum Zeichenspeicher, `OFF` setzt 27H |
-| 8400H–8FFFH | 3 KByte | ungenutzt | wird nie adressiert (Reserve oder Zeichensatz?) |
-| 9000H–9FFFH | 4 KByte | Grafik-Pixelspeicher | sicher: 256 × 128, 1 Bit/Punkt, 32 Byte/Zeile |
-
-Quelle: Routine `G_CLEAR` (3DEFH) und die Adressrechnung von DOT/LINE/FILL/TEST.
-
-## Historischer Hintergrund (RFE 3/1984)
-
-Rainer Heyne stellte das System 1984 in *radio fernsehen elektronik* (Heft 3,
-S. 150–152) als „Basic-Compreter für U 880“ vor (VEB Transformatoren- und
-Röntgenwerk „Hermann Matern“ Dresden). Kernpunkte:
+<ins>Eigenschaften der Software:</ins>
 
 - **Compreter**: Jede Zeile wird beim Eingeben geprüft und in Zwischencode
   übersetzt; fehlerhafte Zeilen werden abgewiesen. Der Quelltext wird für
   LIST parallel gespeichert (`NOMEM`/`MEM`).
+  
 - 12 KByte Programm (ROM-fähig), mindestens 256 Byte Arbeitszellen, für jeden
   U-880-Rechner gedacht; Gleitkomma mit 9 Dezimalstellen, Exponent bis 38,
   zusätzlich 2-Byte-Festkomma.
+  
 - Erweiterungen: Zeichenketten, Felder, symbolische Sprungmarken aus bis zu
   zwei Buchstaben, `IF … THEN … ELSE` mit Anweisungsfolgen, PEEK/POKE,
   CALL, Dateibefehle OPEN/CLOSE/GET/PUT.
+  
 - Daten in Listenform mit dynamischer Speicherverwaltung; Syntax und Lexik
   als Graphen beschrieben (Diplomarbeit Heyne, TH Dresden 1983).
-- Allgemeine E/A-Schnittstelle mit Gerätesteuerblöcken, siehe
-  [docs/portierung.md](docs/portierung.md).
+  
+- Allgemeine E/A-Schnittstelle mit Gerätesteuerblöcken.
+  
 - Ausgeliefert wurde das System als Quellprogramm mit Sprachbeschreibung.
+
+Die [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) von 1983 und die COM-Datei von 1986 weichen in einem Punkt von einander ab. Die Version von 1986 enthält zusätzlich Grafik-Befehle. Durch Analyse der Implementierung konnte auf die [Grafikhardware](docs/grafik-bericht.md) geschlossen werden. Die aufgefundenen Version als COM-File von 19986 ist also eine spezifische Anpassung von BASIC-T an eine weitgehend unbekannte Hardware.
+
+## Weitere historische Bezüge
+
+Interessant ist auch, dass der Zeitpunkt der Entstehung dieser Software (um 1983), in die rasante Entwicklung des Home-Computer-Marktes fällt. Die DDR hatte zu dieser Zeit noch keinen Heimcomputer auf dem Markt, die Pläne zur Entwicklung von solchen Geräten waren jedoch schon sehr konkret, so dass in diese Zeit auch die Auswahl eines BASIC-Interpreters für die Kleincomputer Z9001 und HC-900 fällt. Historische Überlieferungen in [[1]](https://hc-ddr.hucki.net/wiki/doku.php/z9001/basic) berichten davon, dass in diesem Auswahlverfahren am Ende noch dieses BASIC-T und ein BASIC des Instituts in Dummerstorf, was eine Mischung aus dem Sinclair-Basic und einer einfachen Version des Microsoft-Basic war, zur Auswahl standen. Man entscheid sich für das BASIC aus Dummerstorf. 
+
+Die Compreter-Technik war in den Home-Computern der damaligen Zeit eher nicht üblich. Das Locomotive-Basic [[2]](https://8bit-museum.de/heimcomputer/amstrad/), welches im Schneider-CPC verwendet wurde, arbeitet jedoch sehr ähnlich. 
+
+- Die Organisation aller vom Programm
+benutzten Daten erfolgt in einer listenform. Durch den Einsatz der Listentechnik kann die gesamte Arbeit mit den unterschiedlichsten Daten standardisiert
+und durch eine geringe Anzahl von
+Standardunterprogrammen realisiert
+werden.
+
+- Auf die Listentechnik aufbauend, wird
+die Verwaltung des Anwenderspeichers
+dynamisch vorgenommen. Damit wird es
+möglich, variabel lange Zeichenketten
+zu benutzen, die Grenzen von Feldern
+während des Programmlaufes zu verändern und eine beliebige Schachtelungstiefe von Unterprogrammen und For-Next-Zyklen zu erreichen.
+
+- Die lexikalischen und syntaktischen
+Analysen erfolgen durch die Abarbeitung von lexikalischen bzw. Syntaxgraphen. Die Anwendung der Graphen-
+theorie im Compilerbau führt zu einer
+sehr übersichtlichen Beschreibung der
+Syntax im Programmspeicher des Rechners und zu einer ausgezeichneten Änderungsfreundlichkeit.
+
+Locomotive-Basic und BASIC-T sind aber vollkommen unabhängig von einander entstanden. Mit BASIC-T stand damals ein sehr fortschrittliches und schnelles BASIC zur Verfügung. Die offenen Schnittstellen und der Vertieb in Quelltext-Form bot die Möglichkeit, BASIC-T an jedes Zielsystem anzupassen. Es fand aber trotz dieser Vorteile, offensichlich keine sehr große Verbreitung. 
+
+## Geschwindigkeitsvergleich
+
+Eine Fraktalberechnung mit Gleitkomma- und Integerzahlendarstellung diente hier zum Vergleich der Geschwindigkeit mit anderen BASIC-Varinanten. Eine genauere Untersuchung, in unterschiedlichen Anwendungen, wurde noch nicht durchgeführt.
+
+![GK](pic/performance_gk.png)
+
+![GK](pic/performance_in.png)
+
+## Aufbau des Compreters im Original-COM-File (Kurzfassung)
+
+- **0100H–36FFH:** tabellengesteuerte Grammatik (`SYN_MATCH`, `RULETAB`). Sie übersetzt
+  jede Zeile in Zwischencode, den die Laufzeit über `OPTAB` (1271H) ausführt.
+- **3700H:** patchbare Treibertabelle (`DRVTAB`). Der Haken 3703H ist nur ein `RET`.
+- **3B00H–3E27H:** Grafikmodul.
+- **4000H–43ADH:** Arbeitsspeicher. Er steht am Ende des Quelltexts als Labels mit `DS`
+  ab `RAM_BASE` (z. B. `ED_BUF`, `FAC`, `ARG`, `STACK_TOP`); Zellen, deren Zweck noch
+  nicht sicher ist, heißen `V_xxxx`. Darüber liegt der BASIC-Programmspeicher.
+
+Die Syntaxknoten stehen als `DB` im Quelltext. Ihr Kommentar zeigt, was sie bedeuten:
+Schlüsselwort, Aktion und Folgeknoten.
+
+## Source-Filestruktur nach Analyse und Rekonstruktion
+
+| Datei | Inhalt | 
+|---|---|
+| `src/basict.asm` | Kopf, `CODE_ORG`/`RAM_BASE`, Includes | 
+| `src/core_syntax.inc` | Start, Hauptschleife, Syntaxmaschine, Grammatik | 
+| `src/core_run.inc` | OPTAB, Laufzeit, Befehle, Zwischencode | 
+| `src/core_fp.inc` | Gleitkomma | 
+| `src/core_lines.inc` | Zeilen, Fehler, Meldungen |
+| `src/core_io.inc` | logische Kanalblock-E/A (`CH_OUT`, `CH_IN`, `DRV_CALL`) | 
+| `src/io_cpm.inc` | BDOS-Anschluss Konsole/Drucker (`CONIN`, `CONOUT`), `DRVTAB`, `KBD_GET` | 
+| `src/core_edit.inc` | Zeileneditor `ED_LINE`, braucht nur `CONIN`/`CONOUT` und Backspace 08H | 
+| `src/io_cpmfile.inc` | Datei-E/A über FCB/DMA |
+| `src/gfx_tur.inc` | Grafik für die TuR-Hardware (Port 08H, 9000H) | 
+| `src/ram.inc` | Arbeitsspeicher (DS-Labels) | 
+
+Damit kann der Compreter an andere System angepasst werden, siehe
+  [`docs/portierung.md`](docs/portierung.md)
+
+## Ermittelte Grafik-Hardware
+
+- 256 × 128 Punkte, 1 Bit pro Punkt. Bildspeicher 9000H–9FFFH, 32 Byte pro Zeile,
+  Ursprung unten links. Adresse = 9000H + (127 − y) · 32 + x / 8, Bitmaske 80H >> (x AND 7).
+- Der Video-RAM wird über **Port 08H** eingeblendet (Bit 7 = 0) und wieder ausgeblendet
+  (Bit 7 = 1), jeweils mit gesperrten Interrupts.
+- Es gibt keinen Grafik-Controller: Die CPU schreibt direkt in den Speicher.
+  LINE/CLINE arbeiten mit einem Festkomma-Verfahren (DDA in 8.8), nicht mit Bresenham.
+- Details in [`docs/grafik-bericht.md`](docs/grafik-bericht.md).
+
+
+Ebenso gibt es eine tiefergehende Analyse der Gleitkomma-Implementierung.
+
+## Gleitkomma-Rechnung
+
+- Fünf Byte: 31-Bit-Betragsmantisse, separates Vorzeichen und signed
+  8-Bit-Binärexponent ohne Bias; kein IEEE-754.
+- Grundrechenarten mit binären Schiebe-/Addier-/Divisionsverfahren; verlorene
+  Bits werden abgeschnitten. Integerwandlung und Dezimalausgabe runden separat.
+- SQR verwendet vier Newton-Schritte; LOG/EXP/SIN/COS/ATN arbeiten mit
+  Argumentreduktion und Polynom- bzw. rationalen Näherungen.
+- Originalcode unverändert; Randfälle wie `0/0` im FP-Kern und die
+  Ganzzahlwandlung bei −32768 sind dokumentiert und direkt im Emulator geprüft.
+- Herleitung, Adressen und Prüfergebnisse:
+  [`docs/gleitkomma-bericht.md`](docs/gleitkomma-bericht.md).
+
+## Schnellstart
+ 
+```sh
+$ cd basic-t
+$ make check
+IDENTISCH mit dem Original (0100H-3FFFH)
+```
+Voraussetzungen: `asl` und `p2bin` (Paket *asl*, z. B. `nix profile install nixpkgs#asl`,
+oder aus dem Quelltext bauen) sowie GNU make.
 
 ## Verzeichnisse
 
@@ -137,45 +200,6 @@ Emulator Befehl für Befehl genauso ab wie das Original (rund 5,7
 Millionen Befehle: Rechnen, Unterprogramme, LIST, Laden von Diskette,
 Grafik).
 
-Bei jedem Push führt GitHub Actions beide Schritte automatisch aus
-(`.github/workflows/basic-t.yml`, eine Ebene über diesem Ordner).
-
-## Aufbau des Interpreters (Kurzfassung)
-
-- **0100H–36FFH:** tabellengesteuerte Grammatik (`SYN_MATCH`, `RULETAB`). Sie übersetzt
-  jede Zeile in Zwischencode, den die Laufzeit über `OPTAB` (1271H) ausführt.
-- **3700H:** patchbare Treibertabelle (`DRVTAB`). Der Haken 3703H ist nur ein `RET`.
-- **3B00H–3E27H:** Grafikmodul.
-- **4000H–43ADH:** Arbeitsspeicher. Er steht am Ende des Quelltexts als Labels mit `DS`
-  ab `RAM_BASE` (z. B. `ED_BUF`, `FAC`, `ARG`, `STACK_TOP`); Zellen, deren Zweck noch
-  nicht sicher ist, heißen `V_xxxx`. Darüber liegt der BASIC-Programmspeicher.
-
-Die Syntaxknoten stehen als `DB` im Quelltext. Ihr Kommentar zeigt, was sie bedeuten:
-Schlüsselwort, Aktion und Folgeknoten.
-
-## Wichtigste Ergebnisse zur Grafik
-
-- 256 × 128 Punkte, 1 Bit pro Punkt. Bildspeicher 9000H–9FFFH, 32 Byte pro Zeile,
-  Ursprung unten links. Adresse = 9000H + (127 − y) · 32 + x / 8, Bitmaske 80H >> (x AND 7).
-- Der Video-RAM wird über **Port 08H** eingeblendet (Bit 7 = 0) und wieder ausgeblendet
-  (Bit 7 = 1), jeweils mit gesperrten Interrupts.
-- Es gibt keinen Grafik-Controller: Die CPU schreibt direkt in den Speicher.
-  LINE/CLINE arbeiten mit einem Festkomma-Verfahren (DDA in 8.8), nicht mit Bresenham.
-- Details in [`docs/grafik-bericht.md`](docs/grafik-bericht.md).
-
-## Gleitkomma-Rechnung
-
-- Fünf Byte: 31-Bit-Betragsmantisse, separates Vorzeichen und signed
-  8-Bit-Binärexponent ohne Bias; kein IEEE-754.
-- Grundrechenarten mit binären Schiebe-/Addier-/Divisionsverfahren; verlorene
-  Bits werden abgeschnitten. Integerwandlung und Dezimalausgabe runden separat.
-- SQR verwendet vier Newton-Schritte; LOG/EXP/SIN/COS/ATN arbeiten mit
-  Argumentreduktion und Polynom- bzw. rationalen Näherungen.
-- Originalcode unverändert; Randfälle wie `0/0` im FP-Kern und die
-  Ganzzahlwandlung bei −32768 sind dokumentiert und direkt im Emulator geprüft.
-- Herleitung, Adressen und Prüfergebnisse:
-  [`docs/gleitkomma-bericht.md`](docs/gleitkomma-bericht.md).
-
 Optionale Rechentests (nur Python, nicht zum Assemblieren erforderlich):
 
 ```sh
@@ -183,21 +207,24 @@ python3 -m pip install -r tools/requirements-test.txt
 python3 -m unittest discover -s tools -p test_fp.py
 ```
 
-## Stand und offene Punkte
-
-Der gesamte Code ist als Z80-Assembler aufgelöst, auch indirekt angesprungene
-Unterprogramme. Als `DB` stehen nur echte Daten: Grammatik-Knoten, Tabellen,
-Meldungstexte, Füllbytes und Gleitkomma-Konstanten (als benannte Originalbytes
-mit Wertkommentaren). Alle Code- und Tabellenadressen sind symbolisch; Code
-und Arbeitsspeicher lassen sich über `CODE_ORG` und `RAM_BASE` verschieben.
-Offen sind noch Namen für einen Teil der Marken (`Lxxxx`) und RAM-Zellen (`V_xxxx`).
-
 ## Rechte und Lizenz
 
 Die Originaldatei und die Sprachbeschreibung sind historische Dokumente des
 VEB TuR Dresden und werden hier zu Dokumentationszwecken bereitgestellt.
-**Lizenz für die Werkzeuge und Kommentare: noch festzulegen.**
 
-## Beispiele
+## Danksagung
 
-`examples/APFELGK.GBA` (Apfelmännchen, Gleitkomma) und `examples/APFELINT.GBA` (dasselbe in Ganzzahlarithmetik).
+Besonderer Dank geht an Rüdiger Kurth vom Robotrontechnik-Forum für das Bereitstellen der COM-Datei mit dem Binärcode des Basic-Compreters und an alle, die sich beteiligt haben bei der Erforschung dieser Software. 
+
+## Quellen
+
+[1] https://hc-ddr.hucki.net/wiki/doku.php/z9001/basic
+
+[2] https://8bit-museum.de/heimcomputer/amstrad/
+
+[3] [Basic-Compreter für U 880](docs/rfe_1984_3_S.150-152.pdf)
+
+[4] [BASIC-T Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt)
+
+
+

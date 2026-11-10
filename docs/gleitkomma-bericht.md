@@ -1,4 +1,4 @@
-# Gleitkomma-Rechnung von BASIC-T (COM-Datei 1986)
+# Gleitkomma-Rechnung von BASIC-T
 
 Die folgenden Ergebnisse beruhen auf dem Z80-Code des Originals und direkten
 Emulator-Prüfläufen seiner Routinen. Es wurden **keine Rechenbefehle verändert**.
