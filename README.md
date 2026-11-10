@@ -8,7 +8,7 @@ Ausgangspunkt für dieses Projekt war ein Zufallsfund in einer DDR-Zeitschrift. 
 
 Durch Recherche im [Robotrontechnik-Forum](https://www.robotrontechnik.de/html/forum/thwb/index.php) (s. [Danksagung](#danksagung)) konnte eine lauffähige COM-Datei für SCP (CP/M) aufgefunden werden, die jedoch zunächst nur das enthaltene "LOTTO-Programm" startete. Das lauffähige Programm war ohne BASIC-Quelltext in der Datei gespeichert, was nur durch die Übersetzung des Programms durch den Compreter in einen Zwischencode möglich war. Das ist gleichzeitig auch der Grund für eine schnellere Abarbeitung der Programme im Vergleich zu einem reinen BASIC-Interpreter. 
 
-Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) an. Durch Analyse der Binärdatei mit Hilfe von KI-Werkzeugen, konnte der [Quelltext](src) restauriert werden. Zusätzlich wurde ein [Emulator](https://basict.peppermint.de/emulator) erstellt, um dieses interessant historische Software testen zu können.  
+Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) an. Durch Analyse der Binärdatei mit Hilfe von KI-Werkzeugen, konnte der [Quelltext](src) restauriert werden. Zusätzlich wurde ein [Emulator](https://basict.peppermint.de/emulator) erstellt, um diese interessante historische Software testen zu können.  
 
 <ins>Eigenschaften der Software:</ins>
 
@@ -214,7 +214,7 @@ VEB TuR Dresden und werden hier zu Dokumentationszwecken bereitgestellt.
 
 ## Danksagung
 
-Besonderer Dank geht an Rüdiger Kurth vom Robotrontechnik-Forum für das Bereitstellen der COM-Datei mit dem Binärcode des Basic-Compreters und an alle, die sich beteiligt haben bei der Erforschung dieser Software. 
+Besonderer Dank geht an Rüdiger Kurth vom Robotrontechnik-Forum für das Bereitstellen der COM-Datei mit dem Binärcode des Basic-Compreters und der Sprachbeschreibung, sowie an alle, die sich beteiligt haben bei der Erforschung dieser Software. 
 
 ## Quellen
 
