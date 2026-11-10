@@ -52,11 +52,40 @@ mit `DI` … `EI`):
 
 Quelle: Routine `G_CLEAR` (3DEFH) und die Adressrechnung von DOT/LINE/FILL/TEST.
 
+## Historischer Hintergrund (RFE 3/1984)
+
+Rainer Heyne stellte das System 1984 in *radio fernsehen elektronik* (Heft 3,
+S. 150–152) als „Basic-Compreter für U 880“ vor (VEB Transformatoren- und
+Röntgenwerk „Hermann Matern“ Dresden). Kernpunkte:
+
+- **Compreter**: Jede Zeile wird beim Eingeben geprüft und in Zwischencode
+  übersetzt; fehlerhafte Zeilen werden abgewiesen. Der Quelltext wird für
+  LIST parallel gespeichert (`NOMEM`/`MEM`).
+- 12 KByte Programm (ROM-fähig), mindestens 256 Byte Arbeitszellen, für jeden
+  U-880-Rechner gedacht; Gleitkomma mit 9 Dezimalstellen, Exponent bis 38,
+  zusätzlich 2-Byte-Festkomma.
+- Erweiterungen: Zeichenketten, Felder, symbolische Sprungmarken aus bis zu
+  zwei Buchstaben, `IF … THEN … ELSE` mit Anweisungsfolgen, PEEK/POKE,
+  CALL, Dateibefehle OPEN/CLOSE/GET/PUT.
+- Daten in Listenform mit dynamischer Speicherverwaltung; Syntax und Lexik
+  als Graphen beschrieben (Diplomarbeit Heyne, TH Dresden 1983).
+- Allgemeine E/A-Schnittstelle mit Gerätesteuerblöcken, siehe
+  [docs/portierung.md](docs/portierung.md).
+- Ausgeliefert wurde das System als Quellprogramm mit Sprachbeschreibung.
+
 ## Verzeichnisse
 
 | Pfad | Inhalt |
 |---|---|
-| `src/basict.asm` | kommentierter Quelltext (AS, `CPU Z80UNDOC`, `ORG 0100H`) |
+| `src/basict.asm` | Hauptdatei (AS, `CPU Z80UNDOC`): Kopf, Adressen, Includes |
+| `src/core_*.inc` | systemunabhängiger Kern: Syntax, Laufzeit, Gleitkomma, Zeilen/Fehler |
+| `src/core_io.inc` | logische Ein-/Ausgabe über Kanalblöcke (systemunabhängig) |
+| `src/core_edit.inc` | Zeileneditor, nutzt nur `CONIN`/`CONOUT` (systemunabhängig) |
+| `src/io_cpm.inc` | CP/M-Treiber Konsole/Drucker, Gerätetabelle `DRVTAB` (bei Portierung anpassen) |
+| `src/io_cpmfile.inc` | CP/M-Datei-E/A: FCB, LOAD/SAVE/OPEN/CLOSE (bei Portierung anpassen) |
+| `src/gfx_tur.inc` | Grafikmodul für die TuR-Grafikhardware |
+| `src/ram.inc` | Arbeitsspeicher als DS-Labels |
+| `docs/portierung.md` | E/A-Schnittstelle und Anpassung an andere Systeme (nach RFE 3/1984) |
 | `original/BASICT.COM` | Original-Programmdatei (1986) |
 | `original/BASICT.sha256` | Prüfsumme des Originals |
 | `docs/BASIC-T_Sprachbeschreibung.txt` | Sprachbeschreibung von 1983 |
@@ -156,10 +185,12 @@ python3 -m unittest discover -s tools -p test_fp.py
 
 ## Stand und offene Punkte
 
-Einige Bereiche, die das Programm nur auf Umwegen erreicht, stehen noch als `DB`.
-Das gilt für Meldungstexte und einige Unterprogramme. Gleitkomma-Konstanten
-stehen bewusst als benannte Originalbytes mit Wertkommentaren im Quelltext.
-Noch nicht entschlüsselte Nebenpfade bleiben byte-genau erhalten.
+Der gesamte Code ist als Z80-Assembler aufgelöst, auch indirekt angesprungene
+Unterprogramme. Als `DB` stehen nur echte Daten: Grammatik-Knoten, Tabellen,
+Meldungstexte, Füllbytes und Gleitkomma-Konstanten (als benannte Originalbytes
+mit Wertkommentaren). Alle Code- und Tabellenadressen sind symbolisch; Code
+und Arbeitsspeicher lassen sich über `CODE_ORG` und `RAM_BASE` verschieben.
+Offen sind noch Namen für einen Teil der Marken (`Lxxxx`) und RAM-Zellen (`V_xxxx`).
 
 ## Rechte und Lizenz
 

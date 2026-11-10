@@ -9,7 +9,7 @@ G=json.load(open('gram.json')); nodes={int(k):v for k,v in G['nodes'].items()}
 optab=json.load(open('optab.json'))
 SC=json.load(open('scan.json')); sents={int(k):v for k,v in SC['ents'].items()}
 names=dict(N)
-BDOSF={0:'Warmstart',1:'Konsole lesen',2:'Konsole schreiben',6:'Konsole direkt',
+BDOSF={0:'Warmstart',1:'Konsole lesen',2:'Konsole schreiben',5:'Drucker',6:'Konsole direkt',
  9:'Text ausgeben',10:'Zeile lesen',11:'Konsolstatus',13:'Disk-Reset',14:'Laufwerk waehlen',
  15:'Datei oeffnen',16:'Datei schliessen',17:'Suche erste',19:'Datei loeschen',
  20:'Satz lesen',21:'Satz schreiben',22:'Datei anlegen',23:'Umbenennen',26:'DMA setzen'}
@@ -153,10 +153,10 @@ while a<0x4000:
         a+=2; continue
     if a in DRVBLK:
         flush()
-        out.append(line('','DB',hx(b[a-ORG]),f'{a:04X} Kanalblock: Flag'))
-        for k in (1,3,5,7):
+        out.append(line('','DB',hx(b[a-ORG]),f'{a:04X} +0 Flags'))
+        for k,what in ((1,'+1 E/A-Routine'),(3,'+3 Restspalten, +4 Zeilenbreite'),(5,'+5 OPEN-Routine'),(7,'+7 CLOSE-Routine')):
             v=W16(a+k)
-            out.append(line('','DW',sym(v) if isaddr(v) else hx(v,4),f'{a+k:04X}  '+b[a+k-ORG:a+k+2-ORG].hex()))
+            out.append(line('','DW',sym(v) if isaddr(v) else hx(v,4),f'{a+k:04X}  '+b[a+k-ORG:a+k+2-ORG].hex()+'  '+what))
         a+=9; continue
     if a in OPT:
         flush()
@@ -189,8 +189,8 @@ while a<0x4000:
     if a in ins:
         flush(); t,n=ins[a]; mn,op=conv(a,t); cm=f'{a:04X}  '+b[a-ORG:a-ORG+n].hex()
         if mn=='CALL' and op=='BDOS':
-            p=ins.get(a-2,('',0))[0]; mm=re.match(r'LD C,0x([0-9a-f]+)$',p)
-            if mm: cm+='  BDOS '+str(int(mm.group(1),16))+': '+BDOSF.get(int(mm.group(1),16),'?')
+            p=ins.get(a-2,('',0))[0]; mm=re.match(r'LD C,(0x[0-9a-f]+|\d+)$',p)
+            if mm: f=int(mm.group(1),0); cm+='  BDOS '+str(f)+': '+BDOSF.get(f,'?')
         if mn=='OUT' and 'GPORT' in op: cm+='  Bildspeicher umschalten'
         out.append(line('',mn,op,cm))
         a+=n; continue

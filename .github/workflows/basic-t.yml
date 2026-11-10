@@ -19,6 +19,6 @@ jobs:
       - name: Assemblieren und byte-genau vergleichen
         run: make check
       - name: Quelltext reproduzierbar aus dem Original erzeugbar
-        run: sh tools/regen.sh && git diff --exit-code src/basict.asm
+        run: sh tools/regen.sh && git diff --exit-code src/
       - uses: actions/upload-artifact@v4
         with: { name: basict-build, path: build/ }

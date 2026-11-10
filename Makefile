@@ -5,7 +5,7 @@ BUILD := build
 
 all: $(BUILD)/BASICT.COM
 
-$(BUILD)/BASICT.COM: src/basict.asm
+$(BUILD)/BASICT.COM: src/basict.asm $(wildcard src/*.inc)
 	mkdir -p $(BUILD)
 	$(ASL) -cpu z80undoc -L -q -o $(BUILD)/basict.p -olist $(BUILD)/basict.lst src/basict.asm
 	$(P2BIN) -q $(BUILD)/basict.p $@

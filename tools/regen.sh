@@ -11,5 +11,6 @@ python3 optab.py  # Laufzeit-Opcodetabelle
 python3 scan.py   # Zustandstabelle der Zeichen-Erkennung
 python3 trace.py  # Ablaufverfolgung Code/Daten
 python3 gen.py    # AS-Quelltext erzeugen
-cp src/basict.asm "$R/src/basict.asm"
+python3 split.py  # in Module aufteilen (INCLUDE)
+rm -f "$R"/src/*.inc; cp src/basict.asm src/*.inc "$R/src/"
 echo "src/basict.asm neu erzeugt"
