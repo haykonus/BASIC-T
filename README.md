@@ -4,11 +4,11 @@
 
 ## Historischer Hintergrund
 
-Ausgangspunkt für dieses Projekt war ein Zufallsfund in einer DDR-Zeitschrift. Rainer Heyne stellte das System 1984 in *radio fernsehen elektronik* (Heft 3, S. 150–152) als [„Basic-Compreter für U 880“](docs/rfe_1984_3_S.150-152.pdf) vor (*VEB Transformatoren- und Röntgenwerk „Hermann Matern“ Dresden*). Die Original-Quellprogramme zu dem System sind bis heute nicht aufgetaucht. 
+Ausgangspunkt für dieses Projekt war ein Zufallsfund in einer DDR-Zeitschrift. Rainer Heyne stellte das System 1984 in *radio fernsehen elektronik* (Heft 3, S. 150–152) als [„Basic-Compreter für U 880“](docs/rfe_1984_3_S.150-152.pdf) vor (*VEB Transformatoren- und Röntgenwerk „Hermann Matern“ Dresden*). Die Original-Quelldateien zu dem System sind bis heute nicht aufgetaucht. 
 
 Durch Recherche im [Robotrontechnik-Forum](https://www.robotrontechnik.de/html/forum/thwb/index.php) (s. [Danksagung](#danksagung)) konnte eine lauffähige COM-Datei für SCP (CP/M) aufgefunden werden, die jedoch zunächst nur das enthaltene "LOTTO-Programm" startete. Das lauffähige Programm war ohne BASIC-Quelltext in der Datei gespeichert, was nur durch die Übersetzung des Programms durch den Compreter in einen Zwischencode möglich war. Das ist gleichzeitig auch der Grund für eine schnellere Abarbeitung der Programme im Vergleich zu einem reinen BASIC-Interpreter. 
 
-Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) an. Durch Analyse der Binärdatei mit Hilfe von KI-Werkzeugen, konnte der [Quelltext](src) restauriert werden. Zusätzlich wurde ein [Emulator](https://basict.peppermint.de/emulator) erstellt, um diese interessante historische Software testen zu können.  
+Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) an. Durch Analyse der Binärdatei mit Hilfe von KI-Werkzeugen, konnte der [Quelltext](src) restauriert werden. Zusätzlich wurde ein [Emulator](https://basict.peppermint.de/emulator) erstellt, um diese interessante, historische Software testen zu können.  
 
 <ins>Eigenschaften der Software:</ins>
 
@@ -31,13 +31,13 @@ Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbes
   
 - Ausgeliefert wurde das System als Quellprogramm mit Sprachbeschreibung.
 
-Die [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) von 1983 und die COM-Datei von 1986 weichen in einem Punkt von einander ab. Die Version von 1986 enthält zusätzlich Grafik-Befehle. Durch Analyse der Implementierung konnte auf die [Grafikhardware](docs/grafik-bericht.md) geschlossen werden. Die aufgefundenen Version als COM-File von 19986 ist also eine spezifische Anpassung von BASIC-T an eine weitgehend unbekannte Hardware.
+Die [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) von 1983 und die COM-Datei von 1986 weichen in einem Punkt von einander ab. Die Version von 1986 enthält zusätzlich Grafik-Befehle. Durch Analyse der Implementierung konnte auf die [Grafikhardware](docs/grafik-bericht.md) geschlossen werden. Die aufgefundenen Version als COM-File von 1986 ist also eine spezifische Anpassung von BASIC-T an eine weitgehend unbekannte Hardware.
 
 ## Weitere historische Bezüge
 
-Interessant ist auch, dass der Zeitpunkt der Entstehung dieser Software (um 1983), in die rasante Entwicklung des Home-Computer-Marktes fällt. Die DDR hatte zu dieser Zeit noch keinen Heimcomputer auf dem Markt, die Pläne zur Entwicklung von solchen Geräten waren jedoch schon sehr konkret, so dass in diese Zeit auch die Auswahl eines BASIC-Interpreters für die Kleincomputer Z9001 und HC-900 fällt. Historische Überlieferungen in [[1]](https://hc-ddr.hucki.net/wiki/doku.php/z9001/basic) berichten davon, dass in diesem Auswahlverfahren am Ende noch dieses BASIC-T und ein BASIC des Instituts in Dummerstorf, was eine Mischung aus dem Sinclair-Basic und einer einfachen Version des Microsoft-Basic war, zur Auswahl standen. Man entscheid sich für das BASIC aus Dummerstorf. 
+Interessant ist auch, dass der Zeitpunkt der Entstehung dieser Software (um 1983), in die rasante Entwicklung des Home-Computer-Marktes fällt. Die DDR hatte zu dieser Zeit noch keinen Heimcomputer auf dem Markt, die Pläne zur Entwicklung von solchen Geräten waren jedoch schon sehr konkret, so dass in diese Zeit auch die Auswahl eines BASIC-Interpreters für die Kleincomputer Z9001 und HC-900 fällt. Historische Überlieferungen in [[1]](https://hc-ddr.hucki.net/wiki/doku.php/z9001/basic) berichten davon, dass in diesem Auswahlverfahren am Ende noch dieses BASIC-T und ein BASIC des Instituts in Dummerstorf, welches eine Mischung aus dem Sinclair-Basic und einer einfachen Version des Microsoft-Basic war, zur Auswahl standen. Man entscheid sich für das BASIC aus Dummerstorf. 
 
-Die Compreter-Technik war in den Home-Computern der damaligen Zeit eher nicht üblich. Das Locomotive-Basic [[2]](https://8bit-museum.de/heimcomputer/amstrad/), welches im Schneider-CPC verwendet wurde, arbeitet jedoch sehr ähnlich. 
+Die Compreter-Technik war in den Home-Computern der damaligen Zeit eher nicht üblich. Ausserdem hat BASIC-T eine sehr intelligente Speicherverwaltung. In [„Basic-Compreter für U 880“](docs/rfe_1984_3_S.150-152.pdf) steht dazu:
 
 - Die Organisation aller vom Programm
 benutzten Daten erfolgt in einer listenform. Durch den Einsatz der Listentechnik kann die gesamte Arbeit mit den unterschiedlichsten Daten standardisiert
@@ -58,7 +58,7 @@ theorie im Compilerbau führt zu einer
 sehr übersichtlichen Beschreibung der
 Syntax im Programmspeicher des Rechners und zu einer ausgezeichneten Änderungsfreundlichkeit.
 
-Locomotive-Basic und BASIC-T sind aber vollkommen unabhängig von einander entstanden. Mit BASIC-T stand damals ein sehr fortschrittliches und schnelles BASIC zur Verfügung. Die offenen Schnittstellen und der Vertieb in Quelltext-Form bot die Möglichkeit, BASIC-T an jedes Zielsystem anzupassen. Es fand aber trotz dieser Vorteile, offensichlich keine sehr große Verbreitung. 
+Das Locomotive-Basic [[2]](https://8bit-museum.de/heimcomputer/amstrad/), welches im Schneider-CPC verwendet wurde, arbeitet jedoch ähnlich. Locomotive-Basic und BASIC-T sind aber vollkommen unabhängig von einander entstanden. Mit BASIC-T stand damals ein sehr fortschrittliches und schnelles BASIC zur Verfügung. Die offenen Schnittstellen und der Vertieb in Quelltext-Form bot die Möglichkeit, BASIC-T an jedes Zielsystem anzupassen. Es fand aber trotz dieser Vorteile, offensichlich keine sehr große Verbreitung. 
 
 ## Geschwindigkeitsvergleich
 
@@ -226,5 +226,4 @@ Besonderer Dank geht an Rüdiger Kurth vom Robotrontechnik-Forum für das Bereit
 
 [4] [BASIC-T Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt)
 
-
-
+[5] Völz, Horst: In BASIC effektiv programmieren: Auch mit Kleinstrechnern, Berlin, 1989
