@@ -31,7 +31,7 @@ Später fand sich noch die originale [Sprachbeschreibung](docs/BASIC-T_Sprachbes
   
 - Ausgeliefert wurde das System als Quellprogramm mit Sprachbeschreibung.
 
-Die [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) von 1983 und die COM-Datei von 1986 weichen in einem Punkt von einander ab. Die Version von 1986 enthält zusätzlich Grafik-Befehle. Durch Analyse der Implementierung konnte auf die [Grafikhardware](docs/grafik-bericht.md) geschlossen werden. Die aufgefundenen Version als COM-File von 1986 ist also eine spezifische Anpassung von BASIC-T an eine weitgehend unbekannte Hardware.
+Die [Sprachbeschreibung](docs/BASIC-T_Sprachbeschreibung.txt) von 1983 und die COM-Datei von 1986 weichen in einem Punkt von einander ab. Die Version von 1986 enthält zusätzlich Grafik-Befehle. Durch Analyse der Implementierung konnte auf die [Grafikhardware](docs/grafik-bericht.md) geschlossen werden. Die aufgefundene Version als COM-File von 1986 ist also eine spezifische Anpassung von BASIC-T, an eine weitgehend unbekannte Hardware.
 
 ## Weitere historische Bezüge
 
