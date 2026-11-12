@@ -151,9 +151,14 @@ oder aus dem Quelltext bauen) sowie GNU make.
 | `docs/portierung.md` | E/A-Schnittstelle und Anpassung an andere Systeme (nach RFE 3/1984) |
 | `original/BASICT.COM` | Original-Programmdatei (1986) |
 | `original/BASICT.sha256` | Prüfsumme des Originals |
+| `bin/BASICT.COM` | aus dem Quelltext assemblierte Programmdatei (für den Emulator, `make bin`) |
+| `bin/BASICT-0200H.COM` | Fassung mit Code ab 0200H (Sprung bei 0100H), RAM ab 4000H |
 | `docs/BASIC-T_Sprachbeschreibung.txt` | Sprachbeschreibung von 1983 |
 | `docs/grafik-bericht.md` | Analyse der Grafikbefehle und Rückschlüsse auf die Grafik-Hardware |
 | `docs/gleitkomma-bericht.md` | Zahlenformat, Rechenverfahren, Funktionen und verifizierte Sonderfälle |
+| `docs/rfe_1984_3_S.150-152.pdf` | Artikel „Basic-Compreter für U 880“, RFE 3/1984 |
+| `examples/` | BASIC-Beispielprogramme im GBA-Format (APFELGK, APFELINT, CUBE, CUBE2, RECHT, SINUS, STERN) |
+| `pic/` | Bilder für dieses README (Emulator, Geschwindigkeitsvergleich) |
 | `tools/` | Python-Skripte, die den Quelltext aus dem Original erzeugen |
 | `Makefile` | Assemblieren und Vergleich mit dem Original |
 
