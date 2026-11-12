@@ -81,6 +81,62 @@ Eine Fraktalberechnung mit Gleitkomma- und Integerzahlendarstellung diente hier 
 Die Syntaxknoten stehen als `DB` im Quelltext. Ihr Kommentar zeigt, was sie bedeuten:
 Schlüsselwort, Aktion und Folgeknoten.
 
+### Funktionsweise
+
+1. Die Syntaxmaschine (`SYN_MATCH`) prüft jede eingegebene Zeile anhand der
+   Grammatik-Tabelle und übersetzt sie sofort in Zwischencode.
+2. Gespeichert wird nur der Zwischencode; LIST baut den Text daraus wieder auf.
+3. RUN arbeitet den Zwischencode in `RUNLOOP` ab: Opcode holen, Routine über
+   `OPTAB` anspringen. IX ist dabei der Codezeiger.
+
+### Speicherkarte
+
+| Bereich | Inhalt | Modul |
+|---|---|---|
+| 0100H–0306H | Start, Initialisierung, Hauptschleife, Syntaxmaschine | `core_syntax` |
+| 0307H–0344H | `RULETAB`: Startadressen der 31 Grammatikregeln | `core_syntax` |
+| 0345H–1270H | Grammatikknoten und Syntaxaktionen (`S_xxx`) | `core_syntax` |
+| 1271H–1342H | `OPTAB`: Sprungtabelle der Laufzeit (Opcode/2) | `core_run` |
+| 1343H–269EH | Laufzeitroutinen (`X_xxx`), Ausdrücke, Zwischencode | `core_run` |
+| 269FH–331EH | Gleitkomma-Arithmetik und Zahlenwandlung | `core_fp` |
+| 331FH–34DAH | Zeilenverwaltung, Fehler, Meldungen | `core_lines` |
+| 34DBH–36B5H | logische Kanal-E/A (`CH_OUT`, `CH_IN`, `DRV_CALL`) | `core_io` |
+| 36B6H–3801H | CP/M-Treiber `CONIN`/`CONOUT`/`PRNOUT`, `DRVTAB`, `KBD_GET` | `io_cpm` |
+| 3802H–395FH | Zeileneditor `ED_LINE` | `core_edit` |
+| 3960H–3AFFH | Datei-E/A über FCB und DMA-Puffer 0080H | `io_cpmfile` |
+| 3B00H–3E27H | Grafikmodul (DOT, LINE, CLINE, FILL, TEST, OFF …) | `gfx_tur` |
+| ab 4000H | Arbeitsspeicher, nur DS-Labels, nicht in der Datei | `ram` |
+
+### Aufbau eines Syntaxknotens
+
+- Bit 7: letzte Alternative
+- Bit 6: Aktionsbyte folgt (relativ vorwärts)
+- Bit 5: Folgezeiger folgt (relativ, vorzeichenbehaftet; 0 = Regelende)
+- Bit 4–3: 00 = leer (EPS), 01 = Schlüsselwort (KW, Bit 2–0 = Länge − 1),
+  10 = Tokenklasse (TOK), 11 = Unterregel (RULE, Index)
+
+### Gerätetabelle DRVTAB
+
+3700H–3702H sind frei, 3703H (`DRV_DUMMY`) ist nur ein `RET` als Leertreiber.
+Danach folgen die 9-Byte-Kanalblöcke: `DEV_KBD` (Tastatur über Zeileneditor),
+`DEV_EDW` (Vorgabe in den Editorpuffer), `DEV_CON` (Bildschirm),
+`DEV_NULO`/`DEV_NULI` (Leergeräte), `DEV_PRN` (Drucker, 80 Spalten),
+`DEV_MTR`/`DEV_MTW` (Textdatei) und `DEV_FDR`/`DEV_FDW` (Datei binär, GBA).
+
+### Namen im Quelltext
+
+| Name | Bedeutung |
+|---|---|
+| `S_xxx` | Syntaxaktion zum Schlüsselwort xxx (erzeugt Zwischencode) |
+| `X_xxx` | Laufzeitroutine zum Schlüsselwort xxx (über `OPTAB`) |
+| `G_xxx` | Grafikmodul |
+| `FP_xxx` | Gleitkomma |
+| `Lxxxx` | Marke, noch unbenannt (derzeit etwa 900) |
+| `V_xxxx` | RAM-Zelle, Zweck noch unklar (derzeit 92) |
+
+Ein „?“ im Kommentar kennzeichnet eine Vermutung. In der rechten Spalte stehen
+Adresse und Originalbytes jedes Befehls.
+
 ## Source-Filestruktur nach Analyse und Rekonstruktion
 
 | Datei | Inhalt | 
